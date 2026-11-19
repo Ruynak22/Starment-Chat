@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StarmentChat</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <!-- Toast thông báo -->
+  <div id="toast" class="toast"></div>
+
+  <!-- ===================== MÀN HÌNH ĐĂNG NHẬP ===================== -->
+  <div id="authView" class="view auth-view">
+    <div class="auth-card">
+      <div class="auth-brand">
+        <span class="auth-logo">✦</span>
+        <h1>StarmentChat</h1>
+        <p class="auth-subtitle">Kết nối & trò chuyện tức thời</p>
+      </div>
+
+      <div id="authPanel" class="auth-panel">
+        <div class="auth-tabs">
+          <button class="auth-tab active" data-tab="login">Đăng nhập</button>
+          <button class="auth-tab" data-tab="register">Đăng ký</button>
+        </div>
+
+        <form id="authForm" class="auth-form" autocomplete="off" novalidate>
+          <label class="field field-register hidden" id="displayNameField">
+            <span>Tên hiển thị</span>
+            <input id="displayName" type="text" placeholder="Nguyễn Văn A" />
+          </label>
+
+          <label class="field field-register hidden" id="usernameField">
+            <span>Username</span>
+            <input id="username" type="text" placeholder="@nguyenvana" autocomplete="off" spellcheck="false" />
+            <small class="field-hint">3–20 ký tự: chữ, số, dấu _. Không dấu cách.</small>
+          </label>
+
+          <label class="field">
+            <span>Email</span>
+            <input id="email" type="email" placeholder="ban@example.com" />
+          </label>
+
+          <label class="field">
+            <span>Mật khẩu</span>
+            <input id="password" type="password" placeholder="••••••••" />
+          </label>
+
+          <div class="auth-actions">
+            <button type="submit" id="btnLogin" class="btn btn-primary">Đăng nhập</button>
+            <button type="submit" id="btnRegister" class="btn btn-primary hidden">Đăng ký</button>
+          </div>
+
+          <button type="button" id="btnReset" class="btn btn-link">Quên mật khẩu?</button>
+          <p id="status" class="status-text"></p>
+        </form>
+      </div>
+
+      <!-- ===================== GIAO DIỆN QUÊN MẬT KHẨU ===================== -->
+      <div id="resetPanel" class="reset-panel hidden">
+        <button type="button" id="btnResetBack" class="btn btn-link reset-back">← Quay lại đăng nhập</button>
+
+        <h2 class="reset-title">Quên mật khẩu</h2>
+        <p class="reset-desc">
+          Nhập địa chỉ email của bạn. Chúng tôi sẽ gửi một liên kết để đặt lại mật khẩu.
+        </p>
+
+        <form id="resetForm" class="auth-form" autocomplete="off" novalidate>
+          <label class="field">
+            <span>Email</span>
+            <input id="resetEmail" type="email" placeholder="ban@example.com" />
+          </label>
+
+          <div class="auth-actions">
+            <button type="submit" id="btnResetSend" class="btn btn-primary">Gửi liên kết đặt lại</button>
+          </div>
+
+          <p id="resetStatus" class="status-text"></p>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== ỨNG DỤNG CHÍNH ===================== -->
+  <div id="appView" class="view app-view hidden">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <header class="sidebar-header">
+        <button type="button" id="btnProfile" class="me" title="Sửa hồ sơ">
+          <div id="myAvatar" class="avatar">?</div>
+          <div class="me-info">
+            <strong id="myName">Bạn</strong>
+            <span id="myUid" class="me-uid"></span>
+          </div>
+        </button>
+        <button id="btnLogout" class="btn btn-icon" title="Đăng xuất">⏻</button>
+      </header>
+
+      <section class="side-block">
+        <div class="search-row">
+          <input id="searchInput" class="input" placeholder="Tìm @username, UID hoặc tên..." />
+          <button id="btnSearch" class="btn btn-primary btn-sm">Tìm</button>
+        </div>
+        <ul id="searchResults" class="user-list"></ul>
+      </section>
+
+      <section id="requestsSection" class="side-block">
+        <h2 class="side-title">Lời mời kết bạn</h2>
+        <ul id="requests" class="user-list"></ul>
+      </section>
+
+      <section id="connectionsSection" class="side-block grow">
+        <h2 class="side-title">Kết nối</h2>
+        <ul id="connections" class="user-list"></ul>
+      </section>
+    </aside>
+
+    <!-- Khu vực chat -->
+    <main class="chat">
+      <header class="chat-header">
+        <button id="btnBack" class="btn btn-icon chat-back" title="Quay lại">←</button>
+        <div id="chatAvatar" class="avatar">?</div>
+        <div class="chat-header-info">
+          <strong id="chatName">Chọn một cuộc trò chuyện</strong>
+          <span id="chatStatus" class="chat-status"></span>
+          <span id="chatStreak" class="chat-streak"></span>
+        </div>
+      </header>
+
+      <div id="chatEmpty" class="chat-empty">
+        <div class="chat-empty-icon">💬</div>
+        <p>Chọn một người ở danh sách kết nối để bắt đầu trò chuyện</p>
+      </div>
+
+      <div id="messages" class="messages"></div>
+      <div id="typing" class="typing"></div>
+
+      <div id="composer" class="composer hidden">
+        <div class="composer-preview">
+          <img id="imgPreview" alt="" />
+        </div>
+        <input id="msgInput" class="input msg-input" placeholder="Nhập tin nhắn..." />
+        <input id="imgInput" class="input-img" type="file" accept="image/*" />
+        <button id="btnAttach" class="btn btn-icon" title="Đính kèm ảnh">📎</button>
+        <button id="btnSend" class="btn btn-primary">Gửi</button>
+      </div>
+    </main>
+  </div>
+
+  <!-- ===================== MODAL HỒ SƠ ===================== -->
+  <div id="profileModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="profileModalTitle">
+    <div class="modal-backdrop" data-close="profile"></div>
+    <div class="modal-card">
+      <header class="modal-head">
+        <h2 id="profileModalTitle">Hồ sơ của bạn</h2>
+        <button type="button" id="btnProfileClose" class="btn btn-icon" title="Đóng">✕</button>
+      </header>
+
+      <div class="modal-body">
+        <div class="profile-avatar-row">
+          <div id="profileAvatar" class="avatar avatar-xl">?</div>
+        </div>
+
+        <label class="field">
+          <span>Tên hiển thị</span>
+          <input id="profileDisplayName" type="text" maxlength="40" placeholder="Nguyễn Văn A" />
+        </label>
+
+        <label class="field">
+          <span>Username</span>
+          <input id="profileUsername" type="text" placeholder="@nguyenvana" autocomplete="off" spellcheck="false" />
+          <small class="field-hint">3–20 ký tự: chữ, số, dấu _. Không dấu cách.</small>
+        </label>
+
+        <p id="profileStatus" class="status-text"></p>
+      </div>
+
+      <footer class="modal-foot">
+        <button type="button" id="btnProfileCancel" class="btn">Hủy</button>
+        <button type="button" id="btnProfileSave" class="btn btn-primary">Lưu thay đổi</button>
+      </footer>
+    </div>
+  </div>
+
+  <script type="module">
+    import { auth } from "./js/firebase-config.js";
+    import { register, login, logout, resetPassword, friendlyError } from "./js/auth.js";
+    import { getUserProfile, createUserProfile, updateDisplayName, updateUsername, validateUsername } from "./js/users.js";
+    import { searchByUsername } from "./js/connections.js";
+    import "./js/app.js";
+    import { previewImage } from "./js/images.js";
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
+
+    const $ = (id) => document.getElementById(id);
+    const toast = $("toast");
+    let toastTimer = null;
+    function notify(m) {
+      if (!m) return;
+      toast.textContent = m;
+      toast.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove("show"), 3000);
+    }
+    // Đặt thông báo với kiểu: "success" | "error" | null (trung tính)
+    const setStatus = (el, m, type) => {
+      el.textContent = m;
+      el.classList.remove("success", "error");
+      if (type) el.classList.add(type);
+      notify(m);
+    };
+    const status = (m) => setStatus($("status"), m);
+
+    /* ---------- Cookie "remember me" (1 năm) ---------- */
+    const REMEMBER_COOKIE = "starment_remember";
+    const REMEMBER_MAX_AGE = 60 * 60 * 24 * 365;
+    function setRememberCookie(uid) {
+      try {
+        document.cookie =
+          REMEMBER_COOKIE + "=1; path=/; max-age=" + REMEMBER_MAX_AGE + "; SameSite=Lax";
+        if (uid) {
+          document.cookie =
+            "starment_uid=" + encodeURIComponent(uid) +
+            "; path=/; max-age=" + REMEMBER_MAX_AGE + "; SameSite=Lax";
+        }
+      } catch (e) { /* ignore */ }
+    }
+    function clearRememberCookie() {
+      try {
+        document.cookie = REMEMBER_COOKIE + "=; path=/; max-age=0; SameSite=Lax";
+        document.cookie = "starment_uid=; path=/; max-age=0; SameSite=Lax";
+      } catch (e) { /* ignore */ }
+    }
+
+    /* ---------- Chuyển tab đăng nhập / đăng ký ---------- */
+    let authTab = "login";
+    document.querySelectorAll(".auth-tab").forEach((tab) => {
+      tab.onclick = () => {
+        authTab = tab.dataset.tab;
+        document.querySelectorAll(".auth-tab").forEach((t) => t.classList.toggle("active", t === tab));
+        const isRegister = authTab === "register";
+        $("displayNameField").classList.toggle("hidden", !isRegister);
+        $("usernameField").classList.toggle("hidden", !isRegister);
+        $("btnLogin").classList.toggle("hidden", isRegister);
+        $("btnRegister").classList.toggle("hidden", !isRegister);
+        setStatus($("status"), "");
+      };
+    });
+
+    /* ---------- Đăng nhập / đăng ký ---------- */
+    $("authForm").onsubmit = async (e) => {
+      e.preventDefault();
+      const email = $("email").value.trim();
+      const password = $("password").value;
+      setStatus($("status"), "");
+
+      if (authTab === "register") {
+        const displayName = $("displayName").value;
+        const usernameRaw = $("username").value;
+
+        // Kiểm tra username ngay tại client trước khi gọi Firebase
+        const uErr = validateUsername(usernameRaw);
+        if (uErr) { setStatus($("status"), uErr, "error"); return; }
+
+        const btn = $("btnRegister");
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = "Đang tạo…";
+        try {
+          const user = await register(email, password, displayName);
+          try {
+            await createUserProfile(user, { displayName, username: usernameRaw });
+            setStatus($("status"), "Đăng ký thành công", "success");
+          } catch (pe) {
+            setStatus($("status"), "Đã tạo tài khoản nhưng chưa lưu được hồ sơ: " + pe.message, "error");
+          }
+        } catch (err) {
+          setStatus($("status"), friendlyError(err, "register"), "error");
+        } finally {
+          btn.disabled = false;
+          btn.textContent = originalText;
+        }
+      } else {
+        try {
+          await login(email, password);
+          setStatus($("status"), "Đăng nhập thành công", "success");
+        } catch (err) {
+          setStatus($("status"), friendlyError(err, "login"), "error");
+        }
+      }
+    };
+
+    /* ---------- Quên mật khẩu ---------- */
+    const authPanel = $("authPanel");
+    const resetPanel = $("resetPanel");
+    const resetStatus = $("resetStatus");
+
+    function showResetView() {
+      authPanel.classList.add("hidden");
+      resetPanel.classList.remove("hidden");
+      // Gợi ý email đang nhập ở màn đăng nhập (nếu có)
+      if (!$("resetEmail").value) $("resetEmail").value = $("email").value.trim();
+      setStatus(resetStatus, "");
+      $("resetEmail").focus();
+    }
+    function hideResetView() {
+      resetPanel.classList.add("hidden");
+      authPanel.classList.remove("hidden");
+      setStatus(resetStatus, "");
+    }
+
+    $("btnReset").onclick = (e) => {
+      e.preventDefault();
+      showResetView();
+    };
+    $("btnResetBack").onclick = () => hideResetView();
+
+    // Kiểm tra định dạng email đơn giản ở phía client
+    const isValidEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+
+    $("resetForm").onsubmit = async (e) => {
+      e.preventDefault();
+      const email = $("resetEmail").value.trim();
+      const btn = $("btnResetSend");
+      setStatus(resetStatus, "");
+
+      // Kiểm tra email trước khi gửi
+      if (!email || !isValidEmail(email)) {
+        setStatus(resetStatus, "Vui lòng nhập địa chỉ email hợp lệ.", "error");
+        return;
+      }
+
+      // Trạng thái đang gửi — tránh nhấn liên tục
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = "Đang gửi…";
+      try {
+        await resetPassword(email);
+        // Không tiết lộ email có tồn tại hay không
+        setStatus(
+          resetStatus,
+          "Nếu email tồn tại, chúng tôi đã gửi liên kết đặt lại mật khẩu. Vui lòng kiểm tra hộp thư đến và cả thư mục Spam.",
+          "success"
+        );
+      } catch (err) {
+        setStatus(resetStatus, friendlyError(err, "reset"), "error");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
+    };
+
+    $("btnLogout").onclick = async () => {
+      try { await logout(); status("Đã đăng xuất"); }
+      catch (e) { setStatus($("status"), friendlyError(e, "login"), "error"); }
+    };
+
+    /* ---------- Chuyển view theo trạng thái đăng nhập ---------- */
+    let myProfile = null;
+    onAuthStateChanged(auth, async (u) => {
+      if (u) {
+        setRememberCookie(u.uid);
+        $("authView").classList.add("hidden");
+        $("appView").classList.remove("hidden");
+        try {
+          const profile = await getUserProfile(u.uid);
+          myProfile = profile;
+          $("myName").textContent = profile?.displayName || u.displayName || "Bạn";
+          $("myUid").textContent = profile?.username ? "@" + profile.username : u.uid.slice(0, 8) + "…";
+          $("myAvatar").textContent = (profile?.displayName || u.email || "?").charAt(0).toUpperCase();
+        } catch (err) {
+          myProfile = null;
+          $("myName").textContent = u.displayName || "Bạn";
+          $("myUid").textContent = u.uid.slice(0, 8) + "…";
+          $("myAvatar").textContent = (u.email || "?").charAt(0).toUpperCase();
+        }
+      } else {
+        clearRememberCookie();
+        $("appView").classList.add("hidden");
+        $("authView").classList.remove("hidden");
+        // Đảm bảo luôn về màn đăng nhập khi chưa đăng nhập
+        // (vd: sau khi đăng xuất từ màn quên mật khẩu)
+        $("resetPanel").classList.add("hidden");
+        $("authPanel").classList.remove("hidden");
+        myProfile = null;
+      }
+    });
+
+    /* ---------- Modal hồ sơ ---------- */
+    const profileModal = $("profileModal");
+
+    function openProfileModal() {
+      if (!currentUserUid()) return;
+      const p = myProfile || {};
+      $("profileDisplayName").value = p.displayName || "";
+      $("profileUsername").value = p.username || "";
+      const letter = (p.displayName || auth.currentUser?.email || "?").charAt(0).toUpperCase();
+      $("profileAvatar").textContent = letter;
+      setStatus($("profileStatus"), "");
+      profileModal.classList.remove("hidden", "closing");
+      document.body.classList.add("modal-open");
+      setTimeout(() => $("profileDisplayName").focus(), 60);
+    }
+    function closeProfileModal() {
+      if (profileModal.classList.contains("hidden") || profileModal.classList.contains("closing")) return;
+      profileModal.classList.add("closing");
+      document.body.classList.remove("modal-open");
+      setTimeout(() => {
+        profileModal.classList.add("hidden");
+        profileModal.classList.remove("closing");
+      }, 190);
+    }
+    function currentUserUid() {
+      return window.app?.currentUser?.()?.uid || auth.currentUser?.uid;
+    }
+
+    $("btnProfile").onclick = (e) => { e.preventDefault(); openProfileModal(); };
+    $("btnProfileClose").onclick = closeProfileModal;
+    $("btnProfileCancel").onclick = closeProfileModal;
+    profileModal.querySelector('[data-close="profile"]').onclick = closeProfileModal;
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !profileModal.classList.contains("hidden")) closeProfileModal();
+    });
+
+    $("btnProfileSave").onclick = async () => {
+      const uid = currentUserUid();
+      if (!uid) return;
+      const btn = $("btnProfileSave");
+      const displayName = $("profileDisplayName").value.trim();
+      const usernameRaw = $("profileUsername").value;
+
+      const uErr = validateUsername(usernameRaw);
+      if (uErr) { setStatus($("profileStatus"), uErr, "error"); return; }
+
+      btn.disabled = true;
+      btn.classList.add("is-loading");
+      btn.textContent = "Đang lưu…";
+      setStatus($("profileStatus"), "");
+      try {
+        await updateDisplayName(uid, displayName);
+        await updateUsername(uid, usernameRaw);
+        const fresh = await getUserProfile(uid);
+        myProfile = fresh;
+        $("myName").textContent = fresh?.displayName || displayName || "Bạn";
+        $("myUid").textContent = fresh?.username ? "@" + fresh.username : uid.slice(0, 8) + "…";
+        $("myAvatar").textContent = (fresh?.displayName || displayName || "?").charAt(0).toUpperCase();
+        setStatus($("profileStatus"), "Đã lưu hồ sơ", "success");
+        setTimeout(closeProfileModal, 700);
+      } catch (err) {
+        setStatus($("profileStatus"), err?.message || "Không lưu được hồ sơ.", "error");
+      } finally {
+        btn.disabled = false;
+        btn.classList.remove("is-loading");
+        btn.textContent = "Lưu thay đổi";
+      }
+    };
+
+    /* ---------- Tìm kiếm ---------- */
+    $("btnSearch").onclick = async () => {
+      const q = $("searchInput").value.trim();
+      const results = $("searchResults");
+      results.innerHTML = "";
+      if (!q) return;
+
+      const btn = $("btnSearch");
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.classList.add("is-loading");
+      btn.textContent = "Tìm";
+      let users = [];
+      let errored = false;
+      try {
+        if (q.startsWith("@")) {
+          users = await searchByUsername(q);
+        } else if (q.length === 28) {
+          const u = await window.app.searchByUid(q);
+          if (u) users = [u];
+        } else {
+          users = await window.app.searchByName(q);
+        }
+      } catch (err) {
+        errored = true;
+        notify("Không thể tìm kiếm lúc này. Vui lòng kiểm tra kết nối và thử lại.");
+      } finally {
+        btn.disabled = false;
+        btn.classList.remove("is-loading");
+        btn.textContent = originalText;
+      }
+
+      if (!errored && users.length === 0) {
+        const empty = document.createElement("li");
+        empty.className = "user-empty";
+        empty.textContent = "Không tìm thấy người dùng";
+        results.appendChild(empty);
+      }
+      users.forEach((u) => {
+        const li = document.createElement("li");
+        li.className = "user-item";
+        li.setAttribute("role", "button");
+        const av = document.createElement("div");
+        av.className = "avatar avatar-sm";
+        av.textContent = (u.displayName || "?").charAt(0).toUpperCase();
+        
+        // Online status indicator for search results
+        const statusDot = document.createElement("span");
+        statusDot.className = "status-dot";
+        statusDot.dataset.uid = u.uid;
+        av.appendChild(statusDot);
+        // Use presenceCache from app.js if available
+        if (window.app && window.app.presenceCache) {
+          window.app.updateStatusDot(statusDot, window.app.presenceCache.get(u.uid) || { online: false });
+        } else {
+          window.app.updateStatusDot(statusDot, { online: false });
+        }
+        
+        const info = document.createElement("div");
+        info.className = "user-info";
+        const nm = document.createElement("strong");
+        nm.textContent = u.displayName || "(không tên)";
+        const un = document.createElement("span");
+        un.className = "user-username";
+        un.textContent = u.username ? "@" + u.username : u.uid.slice(0, 8) + "…";
+        info.append(nm, un);
+        const btn2 = document.createElement("button");
+        btn2.className = "btn btn-primary btn-sm";
+        btn2.textContent = "Kết nối";
+        btn2.onclick = async (ev) => {
+          ev.stopPropagation();
+          try { await window.app.sendFriendRequest(window.app.currentUser().uid, u.uid); notify("Đã gửi lời mời"); }
+          catch (e) { notify(e.message); }
+        };
+        li.append(av, info, btn2);
+        results.appendChild(li);
+        
+        // Listen to presence for this user
+        import("./js/presence.js").then(({ listenPresence }) => {
+          listenPresence(u.uid, (presence) => {
+            if (window.app && window.app.presenceCache) {
+              window.app.presenceCache.set(u.uid, presence || { online: false });
+            }
+            const dot = document.querySelector(`#searchResults .status-dot[data-uid="${u.uid}"]`);
+            if (dot) window.app.updateStatusDot(dot, presence || { online: false });
+          });
+        });
+      });
+    };
+    $("searchInput").onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); $("btnSearch").click(); } };
+
+    /* ---------- Đính kèm ảnh ---------- */
+    $("btnAttach").onclick = () => $("imgInput").click();
+    $("imgInput").onchange = () => {
+      const f = $("imgInput").files[0];
+      if (f) {
+        previewImage(f, $("imgPreview"));
+        $("imgPreview").classList.add("show");
+      }
+    };
+
+    /* ---------- Gửi tin nhắn ---------- */
+    $("btnSend").onclick = async () => {
+      const chatId = window.app.currentChatId();
+      if (!chatId) return;
+      const f = $("imgInput").files[0];
+      const replyTo = window.app.replyingToMsg?.id || null;
+      if (f) {
+        const url = await window.app.uploadChatImage(chatId, f);
+        await window.app.sendMessage(chatId, window.app.currentUser().uid, null, url, replyTo);
+        $("imgInput").value = "";
+        $("imgPreview").src = "";
+        $("imgPreview").classList.remove("show");
+      } else {
+        const text = $("msgInput").value.trim();
+        if (!text) return;
+        await window.app.sendMessage(chatId, window.app.currentUser().uid, text, null, replyTo);
+        $("msgInput").value = "";
+      }
+      window.app.cancelReply();
+    };
+
+    $("msgInput").onkeydown = (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        $("btnSend").click();
+      }
+    };
+  </script>
+</body>
+</html>
