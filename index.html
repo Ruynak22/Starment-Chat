@@ -939,7 +939,8 @@
       btn.classList.add("is-loading");
       $("btnAttach").disabled = true;
       $("btnClearFile").disabled = true;
-      if (file) setAttachmentProgress(0, true);
+        if (file) setAttachmentProgress(0, true);
+        window.sounds?.send?.();
 
       try {
         let attachment = null;
@@ -972,6 +973,11 @@
         $("btnSend").click();
       }
     };
+  </script>
+  <script type="module">
+    import { sounds } from "./js/sounds.js";
+    window.sounds = sounds;
+    document.addEventListener("click", (e) => { if (e.target.closest("button")) sounds.click(); }, true);
   </script>
 </body>
 </html>
