@@ -968,6 +968,7 @@
     };
 
     $("msgInput").onkeydown = (e) => {
+      if (e.key.length === 1) window.sounds?.typing?.();
       if (e.key === "Enter" && !e.shiftKey && getSettings().enterToSend) {
         e.preventDefault();
         $("btnSend").click();
