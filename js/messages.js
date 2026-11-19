@@ -173,6 +173,27 @@ export async function getStreak(chatId) {
    NHÓM
    - Tạo chat nhóm với nhiều thành viên.
    ============================================================ */
+export async function pinChat(partnerUid) {
+  const list = loadPinnedChats();
+  if (!list.includes(partnerUid)) {
+    list.push(partnerUid);
+    savePinnedChats(list);
+  }
+}
+
+export async function unpinChat(partnerUid) {
+  const list = loadPinnedChats().filter((x) => x !== partnerUid);
+  savePinnedChats(list);
+}
+
+export function isChatPinned(partnerUid) {
+  return loadPinnedChats().includes(partnerUid);
+}
+
+export function getPinnedChatsList() {
+  return loadPinnedChats();
+}
+
 export async function createGroupChat(members, name) {
   const sorted = [...members].sort();
   const chatId = "group_" + sorted.join("_");
@@ -214,11 +235,7 @@ export async function removeMemberFromGroup(chatId, uid) {
   const members = (snap.data().members || []).filter((m) => m !== uid);
   await updateDoc(chatRef, { members });
 }
-/* ============================================================
-   XÓA / THU HỘI TIN NHẮN
-   - deleteMessage: xóa hoàn toàn (chỉ người gửi được xóa).
-   - retractMessage: ẩn tin nhưng giữ placeholder (tất cả đều có thể).
-   ============================================================ */
+
 export async function deleteMessage(chatId, msgId, uid) {
   const ref = doc(db, "chats", chatId, "messages", msgId);
   const snap = await getDoc(ref);

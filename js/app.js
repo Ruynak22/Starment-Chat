@@ -3,7 +3,7 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.2/f
 import { ensureUserProfile, getUserProfile, blockUser, unblockUser, isBlocked, getBlockedUids } from "./users.js";
 import { setPresence } from "./presence.js";
 import { searchByUid, searchByName, sendFriendRequest, listIncomingRequests, respondRequest, getConnectedUsers, MAX_CONNECTIONS, removeConnection } from "./connections.js";
-import { chatIdFor, sendMessage, listenMessages, markMessagesAsRead, listenMessageStatus, listenChat, getStreak, STREAK_MILESTONES, deleteMessage, retractMessage, pinMessage, unpinMessage, getPinnedMessages, pinChat, unpinChat, isChatPinned, updateChat } from "./messages.js";
+import { chatIdFor, sendMessage, listenMessages, markMessagesAsRead, listenMessageStatus, listenChat, getStreak, STREAK_MILESTONES, deleteMessage, retractMessage, pinMessage, unpinMessage, getPinnedMessages, pinChat, unpinChat, isChatPinned, createGroupChat, updateGroupChat, addMemberToGroup, removeMemberFromGroup } from "./messages.js";
 import { uploadChatAttachment, getAttachmentUrl, downloadAttachment, formatFileSize } from "./storage.js";
 import { setTyping } from "./presence.js";
 import { listenTyping } from "./typing.js";
@@ -1130,8 +1130,13 @@ window.app = {
   retractMessage,
   pinMessage,
   unpinMessage,
+  pinChat,
+  unpinChat,
+  isChatPinned,
+  createGroupChat,
   uploadChatAttachment,
   openChat,
+  openChatByChatId,
   currentUser: () => currentUser,
   currentChatId: () => currentChatId,
   presenceCache,
@@ -1140,5 +1145,9 @@ window.app = {
   startReply,
   scrollToBottom,
   openImageViewer,
+  openChatByChatId,
+  pinChat,
+  unpinChat,
+  isChatPinned,
   get replyingToMsg() { return replyingToMsg; }
 };
