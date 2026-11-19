@@ -136,21 +136,51 @@
       <div id="messages" class="messages"></div>
       <div id="typing" class="typing"></div>
 
+      <button id="scrollBottom" class="scroll-bottom hidden" type="button" title="Xuống tin nhắn mới" aria-label="Xuống tin nhắn mới">
+        <span class="scroll-bottom-arrow" aria-hidden="true">↓</span>
+        <span id="scrollBottomBadge" class="scroll-bottom-badge hidden">0</span>
+      </button>
+
       <div id="composer" class="composer hidden">
-        <div class="composer-preview">
-          <img id="imgPreview" alt="" />
-          <div id="filePreview" class="file-preview hidden">
-            <span id="filePreviewIcon" class="file-preview-icon">📎</span>
-            <span id="filePreviewName" class="file-preview-name"></span>
-            <button type="button" id="btnClearFile" class="file-preview-clear" title="Bỏ tệp đã chọn">✕</button>
+        <div id="attachmentBar" class="attachment-bar hidden" aria-live="polite">
+          <div class="attachment-thumb">
+            <img id="imgPreview" alt="" />
+            <span id="filePreview" class="file-preview hidden">
+              <span id="filePreviewIcon" class="file-preview-icon">📎</span>
+            </span>
           </div>
+          <div class="attachment-info">
+            <span id="attachmentName" class="attachment-name"></span>
+            <span id="attachmentSize" class="attachment-size"></span>
+            <div id="attachmentProgress" class="attachment-progress hidden" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+              <div id="attachmentProgressFill" class="attachment-progress-fill"></div>
+            </div>
+          </div>
+          <button type="button" id="btnClearFile" class="attachment-remove" title="Bỏ tệp đã chọn" aria-label="Bỏ tệp đã chọn">✕</button>
         </div>
-        <input id="msgInput" class="input msg-input" placeholder="Nhập tin nhắn..." />
-        <input id="imgInput" class="input-img" type="file" />
-        <button id="btnAttach" class="btn btn-icon" title="Đính kèm ảnh hoặc tệp">📎</button>
-        <button id="btnSend" class="btn btn-primary">Gửi</button>
+        <div class="composer-row">
+          <input id="msgInput" class="input msg-input" placeholder="Nhập tin nhắn..." autocomplete="off" enterkeyhint="send" />
+          <input id="imgInput" class="input-img" type="file" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar,.7z" />
+          <button id="btnAttach" class="btn btn-icon" title="Đính kèm ảnh hoặc tệp" aria-label="Đính kèm ảnh hoặc tệp" type="button">📎</button>
+          <button id="btnSend" class="btn btn-primary" type="button">Gửi</button>
+        </div>
+      </div>
+
+      <div id="dropOverlay" class="drop-overlay" aria-hidden="true">
+        <div class="drop-overlay-card">
+          <div class="drop-overlay-icon">📥</div>
+          <strong>Thả tệp để đính kèm</strong>
+          <span>Ảnh, video, tài liệu · ảnh lớn sẽ được tự động nén</span>
+        </div>
       </div>
     </main>
+  </div>
+
+  <!-- ===================== XEM ẢNH ===================== -->
+  <div id="imageViewer" class="image-viewer hidden" role="dialog" aria-modal="true" aria-label="Xem ảnh">
+    <div class="image-viewer-backdrop" data-close-viewer></div>
+    <img id="imageViewerImg" class="image-viewer-img" alt="" />
+    <button type="button" id="imageViewerClose" class="image-viewer-close btn btn-icon" title="Đóng">✕</button>
   </div>
 
   <!-- ===================== MODAL HỒ SƠ ===================== -->
@@ -195,7 +225,7 @@
     import { searchByUsername } from "./js/connections.js";
     import "./js/app.js";
     import { previewImage, clearImagePreview } from "./js/images.js";
-    import { formatFileSize } from "./js/storage.js";
+    import { formatFileSize, MAX_FILE_SIZE } from "./js/storage.js";
     import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
 
     const $ = (id) => document.getElementById(id);
@@ -555,61 +585,203 @@
     $("searchInput").onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); $("btnSearch").click(); } };
 
     /* ---------- Đính kèm ảnh / tệp ---------- */
-    function clearFileSelection() {
-      $("imgInput").value = "";
-      clearImagePreview($("imgPreview"));
-      $("filePreview").classList.add("hidden");
-      $("filePreviewName").textContent = "";
+    let selectedFile = null;
+    let isSending = false;
+
+    function fileIconFor(f) {
+      const m = (f?.type || "").toLowerCase();
+      const n = (f?.name || "").toLowerCase();
+      if (m.startsWith("image/")) return "🖼️";
+      if (m.startsWith("video/")) return "🎬";
+      if (m.startsWith("audio/")) return "🎵";
+      if (m.includes("pdf") || n.endsWith(".pdf")) return "📕";
+      if (m.includes("zip") || m.includes("rar") || m.includes("7z") || /\.(zip|rar|7z)$/.test(n)) return "🗜️";
+      if (m.includes("sheet") || m.includes("excel") || /\.(xlsx?|csv)$/.test(n)) return "📊";
+      if (m.includes("presentation") || m.includes("powerpoint") || /\.pptx?$/.test(n)) return "📽️";
+      if (m.startsWith("text/") || m.includes("word") || /\.(docx?|txt)$/.test(n)) return "📄";
+      return "📎";
     }
 
-    $("btnAttach").onclick = () => $("imgInput").click();
-    $("btnClearFile").onclick = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      clearFileSelection();
-    };
-    $("imgInput").onchange = () => {
-      const f = $("imgInput").files[0];
+    function setAttachmentProgress(value, active) {
+      const bar = $("attachmentProgress");
+      const fill = $("attachmentProgressFill");
+      if (!bar || !fill) return;
+      bar.classList.toggle("hidden", !active);
+      const pct = Math.round(Math.max(0, Math.min(1, Number(value) || 0)) * 100);
+      fill.style.width = pct + "%";
+      bar.setAttribute("aria-valuenow", String(pct));
+    }
+
+    function clearFileSelection(clearInput = true) {
+      selectedFile = null;
+      if (clearInput) $("imgInput").value = "";
+      clearImagePreview($("imgPreview"));
+      const filePreview = $("filePreview");
+      if (filePreview) filePreview.classList.add("hidden");
+      const bar = $("attachmentBar");
+      if (bar) {
+        bar.classList.add("hidden");
+        bar.classList.remove("pop");
+      }
+      $("attachmentName").textContent = "";
+      $("attachmentSize").textContent = "";
+      setAttachmentProgress(0, false);
+    }
+    window.app.clearAttachment = () => clearFileSelection();
+
+    function setSelectedFile(f) {
       if (!f) { clearFileSelection(); return; }
-      if (f.type.startsWith("image/")) {
+      if (!window.app.currentChatId()) {
+        notify("Hãy chọn một cuộc trò chuyện trước khi đính kèm.");
+        $("imgInput").value = "";
+        return;
+      }
+      const isImage = (f.type || "").startsWith("image/");
+      // Ảnh lớn được phép chọn vì sẽ được nén trước khi tải lên.
+      const selectLimit = isImage ? 25 * 1024 * 1024 : MAX_FILE_SIZE;
+      if (!f.size) {
+        notify("Tệp rỗng hoặc không đọc được.");
+        clearFileSelection();
+        return;
+      }
+      if (f.size > selectLimit) {
+        notify(`Tệp quá lớn. Tối đa ${formatFileSize(selectLimit)}.`);
+        clearFileSelection();
+        return;
+      }
+
+      clearFileSelection(false);
+      selectedFile = f;
+
+      const bar = $("attachmentBar");
+      bar.classList.remove("hidden");
+      bar.classList.remove("pop");
+      void bar.offsetWidth;
+      bar.classList.add("pop");
+
+      $("attachmentName").textContent = f.name || "Tệp đính kèm";
+      $("attachmentSize").textContent = `${isImage ? "Ảnh" : "Tệp"} · ${formatFileSize(f.size)}`;
+
+      if (isImage) {
         $("filePreview").classList.add("hidden");
         previewImage(f, $("imgPreview"));
         $("imgPreview").classList.add("show");
       } else {
         clearImagePreview($("imgPreview"));
-        $("filePreviewIcon").textContent = "📎";
-        $("filePreviewName").textContent = `${f.name} · ${formatFileSize(f.size)}`;
+        $("filePreviewIcon").textContent = fileIconFor(f);
         $("filePreview").classList.remove("hidden");
       }
+      setAttachmentProgress(0, false);
+    }
+
+    function acceptFiles(files) {
+      const f = files && files[0];
+      if (f) setSelectedFile(f);
+    }
+
+    $("btnAttach").onclick = () => {
+      if (isSending) return;
+      $("imgInput").click();
     };
+    $("btnClearFile").onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (isSending) return;
+      clearFileSelection();
+    };
+    $("imgInput").onchange = () => acceptFiles($("imgInput").files);
+
+    /* Kéo-thả tệp vào khu vực chat */
+    const chatArea = document.querySelector(".chat");
+    const dropOverlay = $("dropOverlay");
+    let dragDepth = 0;
+    const isDragWithFiles = (e) =>
+      !!e.dataTransfer && Array.from(e.dataTransfer.types || []).includes("Files");
+
+    chatArea.addEventListener("dragenter", (e) => {
+      if (!isDragWithFiles(e) || $("composer").classList.contains("hidden")) return;
+      e.preventDefault();
+      dragDepth += 1;
+      dropOverlay.classList.add("show");
+    });
+    chatArea.addEventListener("dragover", (e) => {
+      if (!isDragWithFiles(e)) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "copy";
+    });
+    chatArea.addEventListener("dragleave", () => {
+      dragDepth = Math.max(0, dragDepth - 1);
+      if (dragDepth === 0) dropOverlay.classList.remove("show");
+    });
+    chatArea.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dragDepth = 0;
+      dropOverlay.classList.remove("show");
+      if ($("composer").classList.contains("hidden") || isSending) return;
+      acceptFiles(e.dataTransfer?.files);
+    });
+    window.addEventListener("dragend", () => {
+      dragDepth = 0;
+      dropOverlay.classList.remove("show");
+    });
+
+    /* Dán ảnh/tệp từ clipboard */
+    $("msgInput").addEventListener("paste", (e) => {
+      const items = e.clipboardData?.items || [];
+      for (const item of items) {
+        if (item.kind === "file") {
+          const f = item.getAsFile();
+          if (f) {
+            e.preventDefault();
+            if (!isSending) setSelectedFile(f);
+            break;
+          }
+        }
+      }
+    });
 
     /* ---------- Gửi tin nhắn ---------- */
     $("btnSend").onclick = async () => {
+      if (isSending) return;
       const chatId = window.app.currentChatId();
       const uid = window.app.currentUser()?.uid;
       if (!chatId || !uid) return;
-      const f = $("imgInput").files[0];
+      const file = selectedFile;
       const text = $("msgInput").value.trim();
-      if (!f && !text) return;
-      const replyTo = window.app.replyingToMsg?.id || null;
+      if (!file && !text) { $("msgInput").focus(); return; }
 
+      const replyTo = window.app.replyingToMsg?.id || null;
       const btn = $("btnSend");
       const originalText = btn.textContent;
+      isSending = true;
       btn.disabled = true;
-      btn.textContent = "Đang gửi…";
+      btn.classList.add("is-loading");
+      $("btnAttach").disabled = true;
+      $("btnClearFile").disabled = true;
+      if (file) setAttachmentProgress(0, true);
+
       try {
         let attachment = null;
-        if (f) attachment = await window.app.uploadChatAttachment(chatId, f);
+        if (file) {
+          attachment = await window.app.uploadChatAttachment(chatId, file, (p) => setAttachmentProgress(p, true));
+          setAttachmentProgress(1, true);
+        }
         const imageUrl = attachment && attachment.kind === "image" && attachment.url ? attachment.url : null;
         await window.app.sendMessage(chatId, uid, text || null, imageUrl, replyTo, attachment);
-        $("msgInput").value = "";
+        if ($("msgInput").value.trim() === text) $("msgInput").value = "";
         clearFileSelection();
         window.app.cancelReply();
+        window.app.scrollToBottom?.("smooth");
       } catch (err) {
         notify(err?.message || "Không gửi được tệp. Vui lòng thử lại.");
+        setAttachmentProgress(0, false);
       } finally {
+        isSending = false;
         btn.disabled = false;
+        btn.classList.remove("is-loading");
         btn.textContent = originalText;
+        $("btnAttach").disabled = false;
+        $("btnClearFile").disabled = false;
       }
     };
 

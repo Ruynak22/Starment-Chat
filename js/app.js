@@ -20,12 +20,32 @@ let unsubscribePresence = null;
 let unsubscribeMsgStatus = null;
 let unsubscribeChat = null;
 let renderedMsgIds = new Set();
-let wasAtBottom = true;
+let stickToBottom = true;
+let unseenWhileAway = 0;
 let scrollHandler = null;
 let presenceCache = new Map();
 let presenceUnsubscribes = new Map();
 let replyingToMsg = null;
 let currentStreak = null;
+let typingIdleTimer = null;
+let composerRO = null;
+let smoothScrollLockUntil = 0;
+let chatSessionId = 0;
+
+const profileCache = new Map();
+const PROFILE_CACHE_TTL = 5 * 60 * 1000;
+
+if ("scrollRestoration" in history) {
+  history.scrollRestoration = "manual";
+}
+
+function getProfileCached(uid) {
+  const hit = profileCache.get(uid);
+  if (hit && Date.now() - hit.at < PROFILE_CACHE_TTL) return hit.promise;
+  const promise = getUserProfile(uid).catch(() => null);
+  profileCache.set(uid, { promise, at: Date.now() });
+  return promise;
+}
 
 onAuthStateChanged(auth, async (u) => {
   currentUser = u;
@@ -203,13 +223,149 @@ function updateStatusDot(dot, presence) {
   }
 }
 
-function scrollToBottom() {
+function isNearBottom(box) {
+  return box.scrollHeight - box.scrollTop - box.clientHeight <= 80;
+}
+
+function updateScrollBottomButton() {
+  const btn = $("scrollBottom");
+  if (!btn) return;
+  const visible = !!currentChatId && !stickToBottom;
+  btn.classList.toggle("hidden", !visible);
+  const badge = $("scrollBottomBadge");
+  if (badge) {
+    badge.textContent = unseenWhileAway > 99 ? "99+" : String(unseenWhileAway);
+    badge.classList.toggle("hidden", unseenWhileAway === 0);
+  }
+}
+
+function scrollToBottom(behavior = "auto") {
   const box = $("messages");
   if (!box) return;
-  requestAnimationFrame(() => {
+  stickToBottom = true;
+  unseenWhileAway = 0;
+  updateScrollBottomButton();
+  if (behavior === "smooth") {
+    smoothScrollLockUntil = performance.now() + 700;
+    box.scrollTo({ top: box.scrollHeight, behavior: "smooth" });
+  } else {
     box.scrollTop = box.scrollHeight;
-  });
+  }
 }
+
+/* Bám đáy sau khi render/ảnh tải xong/thanh địa chỉ đổi kích thước. */
+function settleAtBottom() {
+  scrollToBottom("auto");
+  requestAnimationFrame(() => scrollToBottom("auto"));
+  setTimeout(() => { if (currentChatId && stickToBottom) scrollToBottom("auto"); }, 160);
+  setTimeout(() => { if (currentChatId && stickToBottom) scrollToBottom("auto"); }, 450);
+  setTimeout(() => { if (currentChatId && stickToBottom) scrollToBottom("auto"); }, 800);
+}
+
+function openImageViewer(url, alt) {
+  const viewer = $("imageViewer");
+  const img = $("imageViewerImg");
+  if (!viewer || !img || !url) return;
+  img.src = url;
+  img.alt = alt || "Ảnh";
+  viewer.classList.remove("hidden");
+  requestAnimationFrame(() => viewer.classList.add("show"));
+  document.body.classList.add("viewer-open");
+}
+
+function closeImageViewer() {
+  const viewer = $("imageViewer");
+  if (!viewer || viewer.classList.contains("hidden")) return;
+  viewer.classList.remove("show");
+  document.body.classList.remove("viewer-open");
+  setTimeout(() => {
+    viewer.classList.add("hidden");
+    $("imageViewerImg")?.removeAttribute("src");
+  }, 190);
+}
+
+function createMessageImage(src, alt, width, height) {
+  const img = document.createElement("img");
+  img.className = "msg-img loading";
+  img.alt = alt || "Ảnh";
+  img.loading = "lazy";
+  img.decoding = "async";
+  if (width && height) {
+    img.width = width;
+    img.height = height;
+    img.style.aspectRatio = `${width} / ${height}`;
+  }
+  const done = () => {
+    img.classList.remove("loading");
+    img.classList.add("loaded");
+    if (stickToBottom) scrollToBottom("auto");
+  };
+  img.addEventListener("load", done, { once: true });
+  img.addEventListener("error", done, { once: true });
+  if (src) img.src = src;
+  return img;
+}
+
+function trackComposerHeight() {
+  const composer = $("composer");
+  const chat = document.querySelector(".chat");
+  if (!composer || !chat) return;
+  const apply = () => {
+    chat.style.setProperty("--composer-h", `${composer.offsetHeight}px`);
+    if (currentChatId && stickToBottom) {
+      requestAnimationFrame(() => { if (stickToBottom) scrollToBottom("auto"); });
+    }
+  };
+  apply();
+  if (typeof ResizeObserver === "function") {
+    composerRO?.disconnect();
+    composerRO = new ResizeObserver(apply);
+    composerRO.observe(composer);
+  }
+}
+
+function restoreBottomOnReturn() {
+  if (!currentChatId || !stickToBottom) return;
+  scrollToBottom("auto");
+  setTimeout(() => { if (currentChatId && stickToBottom) scrollToBottom("auto"); }, 280);
+}
+
+$("scrollBottom")?.addEventListener("click", () => scrollToBottom("smooth"));
+$("imageViewerClose")?.addEventListener("click", closeImageViewer);
+$("imageViewer")?.addEventListener("click", (e) => {
+  if (e.target === $("imageViewer") ||
+      e.target.classList.contains("image-viewer-backdrop") ||
+      e.target.id === "imageViewerImg") {
+    closeImageViewer();
+  }
+});
+$("messages")?.addEventListener("click", (e) => {
+  const img = e.target.closest(".msg-img");
+  if (img && img.src) openImageViewer(img.src, img.alt);
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") closeImageViewer();
+});
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") restoreBottomOnReturn();
+});
+window.addEventListener("pageshow", restoreBottomOnReturn);
+window.addEventListener("focus", restoreBottomOnReturn);
+window.addEventListener("resize", () => {
+  trackComposerHeight();
+  if (currentChatId && stickToBottom) scrollToBottom("auto");
+});
+window.visualViewport?.addEventListener("resize", () => {
+  if (currentChatId && stickToBottom) {
+    setTimeout(() => { if (stickToBottom) scrollToBottom("auto"); }, 80);
+  }
+});
+$("msgInput")?.addEventListener("focus", () => {
+  if (currentChatId && stickToBottom) {
+    setTimeout(() => { if (stickToBottom) scrollToBottom("auto"); }, 260);
+  }
+});
+trackComposerHeight();
 
 function attachLongPress(el, mine, msg) {
   let timer = null;
@@ -297,10 +453,14 @@ function createFileCard(attachment) {
   card.append(icon, meta, dl);
   card.onclick = async (e) => {
     e.stopPropagation();
+    if (card.classList.contains("downloading")) return;
+    card.classList.add("downloading");
     try {
       await downloadAttachment(attachment);
     } catch (err) {
       window.notify?.(err?.message || "Không tải được tệp.");
+    } finally {
+      card.classList.remove("downloading");
     }
   };
   return card;
@@ -309,16 +469,10 @@ function createFileCard(attachment) {
 function renderAttachment(bubble, attachment) {
   if (!attachment) return;
   if (attachment.kind === "image") {
-    const img = document.createElement("img");
-    img.className = "msg-img loading";
-    img.alt = attachment.name || "Ảnh";
+    const img = createMessageImage(null, attachment.name, attachment.width, attachment.height);
     bubble.appendChild(img);
     getAttachmentUrl(attachment).then((url) => {
       img.src = url;
-      img.onload = () => {
-        img.classList.remove("loading");
-        if (wasAtBottom) scrollToBottom();
-      };
     }).catch(() => {
       img.replaceWith(createFileCard(attachment));
     });
@@ -349,7 +503,9 @@ function updateChatHeaderStatus(presence) {
 }
 
 async function openChat(otherUid) {
+  const sessionId = ++chatSessionId;
   currentChatId = chatIdFor(currentUser.uid, otherUid);
+  const chatIdAtOpen = currentChatId;
   currentChatPartnerUid = otherUid;
   
   // Save last opened chat
@@ -370,7 +526,9 @@ async function openChat(otherUid) {
   const appView = $("appView");
   if (appView) appView.classList.add("chat-open");
 
-  const profile = await getUserProfile(otherUid);
+  const profile = await getProfileCached(otherUid);
+  if (sessionId !== chatSessionId) return;
+  window.app?.clearAttachment?.();
   const nameEl = $("chatName");
   if (nameEl) nameEl.textContent = profile?.displayName || otherUid.slice(0, 8) + "…";
   const statusEl = $("chatStatus");
@@ -386,32 +544,64 @@ async function openChat(otherUid) {
 
   // Listen to streak
   unsubscribeChat = listenChat(currentChatId, (chatData) => {
+    if (sessionId !== chatSessionId) return;
     if (chatData) {
       currentStreak = chatData.streak || { count: 0, lastDate: null, milestones: [] };
       updateStreakDisplay();
     }
   });
 
-  // Mark messages as read when opening chat
-  await markMessagesAsRead(currentChatId, currentUser.uid);
+  let firstSnapshot = true;
+
+  // Mark messages as read when opening chat (không chặn việc hiển thị tin nhắn)
+  markMessagesAsRead(chatIdAtOpen, currentUser.uid).catch(() => {});
 
   const box = $("messages");
   box.innerHTML = "";
   renderedMsgIds.clear();
-  wasAtBottom = true;
-  unsubscribeMessages = listenMessages(currentChatId, async (msgs) => {
+  stickToBottom = true;
+  unseenWhileAway = 0;
+  updateScrollBottomButton();
+  trackComposerHeight();
+
+  unsubscribeMessages = listenMessages(chatIdAtOpen, async (msgs) => {
+    if (currentChatId !== chatIdAtOpen || sessionId !== chatSessionId) return;
     const newMsgs = msgs.filter(m => !renderedMsgIds.has(m.id));
+    if (newMsgs.length === 0) {
+      if (firstSnapshot) {
+        firstSnapshot = false;
+        settleAtBottom();
+      }
+      return;
+    }
+
+    newMsgs.forEach((m) => renderedMsgIds.add(m.id));
+
+    const msgById = new Map(msgs.map((m) => [m.id, m]));
+    const uidSet = new Set(newMsgs.map((m) => m.senderUid));
+    newMsgs.forEach((m) => {
+      const replied = m.replyTo ? msgById.get(m.replyTo) : null;
+      if (replied) uidSet.add(replied.senderUid);
+    });
+
+    const resolvedProfiles = new Map();
+    await Promise.all([...uidSet].map(async (uid) => {
+      resolvedProfiles.set(uid, await getProfileCached(uid));
+    }));
+    if (currentChatId !== chatIdAtOpen) return;
+
+    const isInitialBatch = firstSnapshot;
     for (const m of newMsgs) {
-      renderedMsgIds.add(m.id);
       const mine = m.senderUid === currentUser.uid;
       const bubble = document.createElement("div");
       bubble.className = "msg " + (mine ? "outgoing" : "incoming");
+      if (!isInitialBatch) bubble.classList.add("msg-new");
       bubble.dataset.msgId = m.id;
 
       if (!mine) {
         const sender = document.createElement("span");
         sender.className = "msg-sender";
-        const senderProfile = await getUserProfile(m.senderUid);
+        const senderProfile = resolvedProfiles.get(m.senderUid);
         sender.textContent = senderProfile?.displayName || m.senderUid.slice(0, 8) + "…";
         bubble.appendChild(sender);
       }
@@ -420,9 +610,11 @@ async function openChat(otherUid) {
       if (m.replyTo) {
         const replyPreview = document.createElement("div");
         replyPreview.className = "msg-reply-preview";
-        const repliedMsg = msgs.find(msg => msg.id === m.replyTo);
+        const repliedMsg = msgById.get(m.replyTo);
         if (repliedMsg) {
-          const repliedProfile = await getUserProfile(repliedMsg.senderUid);
+          const repliedProfile = repliedMsg.senderUid === currentUser.uid
+            ? null
+            : resolvedProfiles.get(repliedMsg.senderUid);
           const repliedName = repliedMsg.senderUid === currentUser.uid ? "Bạn" : (repliedProfile?.displayName || "Người dùng");
           const replyName = document.createElement("span");
           replyName.className = "reply-name";
@@ -432,7 +624,7 @@ async function openChat(otherUid) {
           replyText.textContent = attachmentPreviewText(repliedMsg);
           replyPreview.append(replyName, replyText);
           bubble.appendChild(replyPreview);
-          
+
           // Click to scroll to replied message
           replyPreview.onclick = (e) => {
             e.stopPropagation();
@@ -442,15 +634,11 @@ async function openChat(otherUid) {
       }
 
       let hasMedia = false;
-      if (m.imageUrl) {
-        const img = document.createElement("img");
-        img.src = m.imageUrl;
-        // Khi ảnh tải xong (chiều cao thay đổi) → vẫn bám đáy nếu đang ở đáy
-        img.onload = () => { if (wasAtBottom) scrollToBottom(); };
-        bubble.appendChild(img);
-        hasMedia = true;
-      } else if (m.attachment) {
+      if (m.attachment) {
         renderAttachment(bubble, m.attachment);
+        hasMedia = true;
+      } else if (m.imageUrl) {
+        bubble.appendChild(createMessageImage(m.imageUrl, "Ảnh"));
         hasMedia = true;
       }
 
@@ -464,7 +652,7 @@ async function openChat(otherUid) {
           bubble.appendChild(document.createTextNode(m.text));
         }
       }
-      
+
       // Add status indicator for outgoing messages
       if (mine) {
         const statusSpan = document.createElement("span");
@@ -474,7 +662,7 @@ async function openChat(otherUid) {
         statusSpan.textContent = getStatusText(m.status || "sent");
         bubble.appendChild(statusSpan);
       }
-      
+
       // Add reply action for incoming messages
       if (!mine) {
         const actions = document.createElement("div");
@@ -493,18 +681,25 @@ async function openChat(otherUid) {
       box.appendChild(bubble);
       attachLongPress(bubble, mine, m);
     }
-    requestAnimationFrame(() => {
-      if (newMsgs.length > 0 && wasAtBottom) {
-        const box = $("messages");
-        if (box) box.scrollTop = box.scrollHeight;
-      }
-    });
+
+    if (!isInitialBatch && !stickToBottom) {
+      unseenWhileAway += newMsgs.filter((m) => m.senderUid !== currentUser.uid).length;
+    }
+    firstSnapshot = false;
+
+    if (stickToBottom) {
+      requestAnimationFrame(() => {
+        if (currentChatId === chatIdAtOpen) scrollToBottom("auto");
+      });
+      setTimeout(() => {
+        if (currentChatId === chatIdAtOpen && stickToBottom) scrollToBottom("auto");
+      }, 120);
+    } else {
+      updateScrollBottomButton();
+    }
   });
 
-  requestAnimationFrame(() => {
-    const box = $("messages");
-    if (box) box.scrollTop = box.scrollHeight;
-  });
+  settleAtBottom();
 
   // Listen to message status changes
   unsubscribeMsgStatus = listenMessageStatus(currentChatId, (statuses) => {
@@ -522,30 +717,56 @@ async function openChat(otherUid) {
   });
 
   scrollHandler = () => {
-    wasAtBottom = box.scrollTop + box.clientHeight >= box.scrollHeight - 50;
+    if (performance.now() < smoothScrollLockUntil) return;
+    const atBottom = isNearBottom(box);
+    if (stickToBottom === atBottom) return;
+    stickToBottom = atBottom;
+    if (atBottom) unseenWhileAway = 0;
+    updateScrollBottomButton();
   };
-  box.addEventListener("scroll", scrollHandler);
+  box.addEventListener("scroll", scrollHandler, { passive: true });
 
-  unsubscribeTyping = listenTyping(currentChatId, (data) => {
+  unsubscribeTyping = listenTyping(chatIdAtOpen, (data) => {
     const indicator = $("typing");
     if (!indicator) return;
     const othersTyping = Object.keys(data).some((k) => k !== currentUser.uid && data[k]?.typing);
-    indicator.textContent = othersTyping ? "Đang nhập..." : "";
+    if (indicator.dataset.active === String(othersTyping)) return;
+    indicator.dataset.active = String(othersTyping);
+    if (othersTyping) {
+      indicator.innerHTML = '<span class="typing-text">Đang nhập</span><span class="typing-dots" aria-hidden="true"><i></i><i></i><i></i></span>';
+    } else {
+      indicator.textContent = "";
+    }
   });
 
   const input = $("msgInput");
-  if (input) input.oninput = () => setTyping(currentChatId, currentUser.uid, true);
+  if (input) {
+    input.oninput = () => {
+      setTyping(currentChatId, currentUser.uid, true);
+      clearTimeout(typingIdleTimer);
+      typingIdleTimer = setTimeout(() => {
+        if (currentChatId) setTyping(currentChatId, currentUser.uid, false);
+      }, 2500);
+    };
+  }
 
   const back = $("btnBack");
   if (back) back.onclick = () => closeChat();
-  
+
   // Update streak display initially
-  const streakData = await getStreak(currentChatId);
+  const streakData = await getStreak(chatIdAtOpen);
+  if (sessionId !== chatSessionId) return;
   currentStreak = streakData;
   updateStreakDisplay();
 }
 
 function closeChat() {
+  const closingChatId = currentChatId;
+  if (closingChatId && currentUser) {
+    try { setTyping(closingChatId, currentUser.uid, false); } catch { /* ignore */ }
+  }
+  clearTimeout(typingIdleTimer);
+  typingIdleTimer = null;
   currentChatId = null;
   currentChatPartnerUid = null;
   replyingToMsg = null;
@@ -560,6 +781,14 @@ function closeChat() {
     scrollHandler = null;
   }
   renderedMsgIds.clear();
+  stickToBottom = true;
+  unseenWhileAway = 0;
+  updateScrollBottomButton();
+  const typingEl = $("typing");
+  if (typingEl) {
+    typingEl.textContent = "";
+    delete typingEl.dataset.active;
+  }
   const box = $("messages");
   if (box) box.innerHTML = "";
   const empty = $("chatEmpty");
@@ -570,7 +799,8 @@ function closeChat() {
   if (nameEl) nameEl.textContent = "Chọn một cuộc trò chuyện";
   const appView = $("appView");
   if (appView) appView.classList.remove("chat-open");
-  
+  requestAnimationFrame(trackComposerHeight);
+
   // Hide reply bar
   hideReplyBar();
 }
@@ -594,7 +824,7 @@ function showReplyBar(msg) {
     const composer = $("composer");
     composer.parentNode.insertBefore(replyBar, composer);
   }
-  getUserProfile(msg.senderUid).then(p => {
+  getProfileCached(msg.senderUid).then(p => {
     const name = msg.senderUid === currentUser.uid ? "Bạn" : (p?.displayName || "Người dùng");
     const label = document.createElement("span");
     label.className = "reply-bar-label";
@@ -655,4 +885,4 @@ function getStatusText(status) {
   }
 }
 
-window.app = { searchByUid, searchByName, sendFriendRequest, listIncomingRequests, respondRequest, sendMessage, uploadChatAttachment, currentUser: () => currentUser, currentChatId: () => currentChatId, presenceCache, updateStatusDot, cancelReply, startReply, get replyingToMsg() { return replyingToMsg; } };
+window.app = { searchByUid, searchByName, sendFriendRequest, listIncomingRequests, respondRequest, sendMessage, uploadChatAttachment, currentUser: () => currentUser, currentChatId: () => currentChatId, presenceCache, updateStatusDot, cancelReply, startReply, scrollToBottom, openImageViewer, get replyingToMsg() { return replyingToMsg; } };

@@ -47,9 +47,9 @@ export async function sendMessage(chatId, senderUid, text, imageUrl = null, repl
   }
 
   await addDoc(msgRef, msgData);
-  
-  // Update streak
-  await updateStreak(chatId, senderUid);
+
+  // Cập nhật streak chạy nền để không làm chậm thao tác gửi tin nhắn.
+  updateStreak(chatId, senderUid).catch(() => {});
 }
 
 export function listenMessages(chatId, cb) {
