@@ -3,7 +3,7 @@ const ctx = () => {
   return window._audioCtx;
 };
 
-function beep(freq, dur, type = "sine", gain = 0.12) {
+function beep(freq, dur, type = "sine", gain = 0.35) {
   try {
     const c = ctx();
     const o = c.createOscillator();
@@ -21,8 +21,8 @@ function beep(freq, dur, type = "sine", gain = 0.12) {
 export const sounds = {
   send: () => { beep(660, 0.08); setTimeout(() => beep(880, 0.1), 60); },
   reply: () => beep(520, 0.12, "triangle"),
-  typing: () => beep(300, 0.04, "square", 0.05),
-  click: () => beep(440, 0.05, "sine", 0.08),
+  typing: () => beep(300, 0.04, "square", 0.2),
+  click: () => beep(440, 0.05, "sine", 0.25),
   receive: () => { beep(784, 0.09); setTimeout(() => beep(660, 0.09), 80); },
   error: () => beep(220, 0.2, "sawtooth", 0.1),
 };
