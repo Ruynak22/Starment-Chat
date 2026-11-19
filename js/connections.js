@@ -1,6 +1,6 @@
 import { db } from "./firebase-config.js";
 import {
-  collection, doc, getDoc, setDoc, query, where, getDocs, updateDoc, serverTimestamp, orderBy, limit, writeBatch
+  collection, doc, getDoc, setDoc, query, where, getDocs, updateDoc, serverTimestamp, orderBy, limit, writeBatch, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 import { normalizeUsername, normalizeSearchText } from "./users.js";
 
@@ -71,6 +71,16 @@ export async function listIncomingRequests(uid) {
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
+/* Theo dõi realtime lời mời kết bạn gửi tới uid (dùng cho trung tâm thông báo). */
+export function listenIncomingRequests(uid, cb, onError) {
+  const q = query(
+    collection(db, "friendRequests"),
+    where("toUid", "==", uid),
+    where("status", "==", "pending")
+  );
+  return onSnapshot(q, cb, onError || (() => {}));
+}
+
 export async function respondRequest(requestId, accept) {
   await updateDoc(doc(db, "friendRequests", requestId), {
     status: accept ? "accepted" : "rejected"
@@ -78,13 +88,22 @@ export async function respondRequest(requestId, accept) {
 }
 
 export async function getConnectedUsers(uid) {
-  const q = query(collection(db, "friendRequests"), where("status", "==", "accepted"));
-  const snap = await getDocs(q);
+  // Truy vấn tách riêng theo fromUid/toUid để tuân thủ security rules
+  // (mỗi người chỉ được đọc lời mời có liên quan tới mình).
+  const [sent, received] = await Promise.all([
+    getDocs(query(
+      collection(db, "friendRequests"),
+      where("fromUid", "==", uid),
+      where("status", "==", "accepted")
+    )),
+    getDocs(query(
+      collection(db, "friendRequests"),
+      where("toUid", "==", uid),
+      where("status", "==", "accepted")
+    ))
+  ]);
   const others = new Set();
-  snap.forEach(d => {
-    const data = d.data();
-    if (data.fromUid === uid) others.add(data.toUid);
-    if (data.toUid === uid) others.add(data.fromUid);
-  });
+  sent.forEach(d => others.add(d.data().toUid));
+  received.forEach(d => others.add(d.data().fromUid));
   return [...others];
 }

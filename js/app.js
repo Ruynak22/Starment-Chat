@@ -80,7 +80,7 @@ onAuthStateChanged(auth, async (u) => {
 
 async function refreshConnections() {
   if (!currentUser) return;
-  
+
   // Clean up old presence listeners
   presenceUnsubscribes.forEach(unsub => unsub());
   presenceUnsubscribes.clear();
@@ -177,7 +177,12 @@ async function refreshConnections() {
     av.appendChild(statusDot);
     updateStatusDot(statusDot, presenceCache.get(uid) || { online: false });
     
-    li.append(av, info);
+    // Badge tin nhắn chưa đọc (do notifications.js cập nhật)
+    const unreadBadge = document.createElement("span");
+    unreadBadge.className = "conn-badge hidden";
+    unreadBadge.dataset.uid = uid;
+    
+    li.append(av, info, unreadBadge);
     li.setAttribute("role", "button");
     li.onclick = () => openChat(uid);
     getUserProfile(uid).then((p) => {
@@ -203,6 +208,9 @@ async function refreshConnections() {
     
     list.appendChild(li);
   });
+  
+  // Báo cho notifications.js đồng bộ lại danh sách theo dõi tin nhắn.
+  window.dispatchEvent(new CustomEvent("connections:changed"));
 }
 
 function updateStatusDot(dot, presence) {
@@ -508,6 +516,9 @@ async function openChat(otherUid) {
   const chatIdAtOpen = currentChatId;
   currentChatPartnerUid = otherUid;
   
+  // Cho notifications.js biết cuộc trò chuyện đang mở.
+  window.dispatchEvent(new CustomEvent("chat:opened", { detail: { partnerUid: otherUid } }));
+  
   // Save last opened chat
   localStorage.setItem(LAST_CHAT_KEY, otherUid);
   
@@ -770,6 +781,7 @@ function closeChat() {
   currentChatId = null;
   currentChatPartnerUid = null;
   replyingToMsg = null;
+  window.dispatchEvent(new CustomEvent("chat:closed"));
   if (unsubscribeMessages) { unsubscribeMessages(); unsubscribeMessages = null; }
   if (unsubscribeTyping) { unsubscribeTyping(); unsubscribeTyping = null; }
   if (unsubscribePresence) { unsubscribePresence(); unsubscribePresence = null; }
@@ -885,4 +897,8 @@ function getStatusText(status) {
   }
 }
 
-window.app = { searchByUid, searchByName, sendFriendRequest, listIncomingRequests, respondRequest, sendMessage, uploadChatAttachment, currentUser: () => currentUser, currentChatId: () => currentChatId, presenceCache, updateStatusDot, cancelReply, startReply, scrollToBottom, openImageViewer, get replyingToMsg() { return replyingToMsg; } };
+window.addEventListener("requests:changed", () => {
+  if (currentUser) refreshConnections();
+});
+
+window.app = { searchByUid, searchByName, sendFriendRequest, listIncomingRequests, respondRequest, sendMessage, uploadChatAttachment, openChat, currentUser: () => currentUser, currentChatId: () => currentChatId, presenceCache, updateStatusDot, cancelReply, startReply, scrollToBottom, openImageViewer, get replyingToMsg() { return replyingToMsg; } };
