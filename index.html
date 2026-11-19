@@ -40,17 +40,6 @@
         </div>
 
         <form id="authForm" class="auth-form" autocomplete="off" novalidate>
-          <label class="field field-register hidden" id="displayNameField">
-            <span>Tên hiển thị</span>
-            <input id="displayName" type="text" placeholder="Nguyễn Văn A" />
-          </label>
-
-          <label class="field field-register hidden" id="usernameField">
-            <span>Username</span>
-            <input id="username" type="text" placeholder="@nguyenvana" autocomplete="off" spellcheck="false" />
-            <small class="field-hint">3–20 ký tự: chữ, số, dấu _. Không dấu cách.</small>
-          </label>
-
           <label class="field">
             <span>Email</span>
             <input id="email" type="email" placeholder="ban@example.com" />
@@ -494,15 +483,11 @@
       const password = $("password").value;
       setStatus($("status"), "");
 
-      if (authTab === "register") {
-        const displayName = $("displayName").value;
-        const usernameRaw = $("username").value;
+       if (authTab === "register") {
+         const displayName = email.split("@")[0];
+         const usernameRaw = email.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "").slice(0, 20) || "user";
 
-        // Kiểm tra username ngay tại client trước khi gọi Firebase
-        const uErr = validateUsername(usernameRaw);
-        if (uErr) { setStatus($("status"), uErr, "error"); return; }
-
-        const btn = $("btnRegister");
+         const btn = $("btnRegister");
         const originalText = btn.textContent;
         btn.disabled = true;
         btn.textContent = "Đang tạo…";
