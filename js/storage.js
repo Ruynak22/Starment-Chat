@@ -5,7 +5,7 @@ import { ref as rtdbRef, push, set, get } from "https://www.gstatic.com/firebase
 export const MAX_FILE_SIZE = 5 * 1024 * 1024;   // 5MB cho mỗi tệp
 const MAX_IMAGE_DIM = 1600;                     // cạnh dài tối đa sau khi nén
 const IMAGE_QUALITY = 0.82;
-const IMAGE_RECOMPRESS_ABOVE = 300 * 1024;      // ảnh nhỏ hơn thì giữ nguyên
+const IMAGE_RECOMPRESS_ABOVE = 300 * 1024;
 const URL_CACHE_MAX = 20;
 
 let storageUsable = true;
@@ -120,6 +120,19 @@ function tryUploadToStorage(chatId, file, onProgress) {
     });
 
     return new Promise((resolve) => {
+      let settled = false;
+      const finish = (value) => {
+        if (settled) return;
+        settled = true;
+        try { task.cancel(); } catch { /* ignore */ }
+        resolve(value);
+      };
+      const timer = setTimeout(() => {
+        storageUsable = false;
+        console.warn("Firebase Storage phản hồi quá chậm, chuyển sang Realtime Database.");
+        finish(null);
+      }, 8000);
+
       task.on(
         "state_changed",
         (snap) => {
@@ -128,20 +141,21 @@ function tryUploadToStorage(chatId, file, onProgress) {
           }
         },
         (err) => {
-          // Firebase Storage chưa được bật/không truy cập được → dùng RTDB làm dự phòng.
+          clearTimeout(timer);
           storageUsable = false;
           console.warn("Firebase Storage không dùng được, chuyển sang Realtime Database:", err);
-          resolve(null);
+          finish(null);
         },
         async () => {
+          clearTimeout(timer);
           try {
             onProgress?.(1);
             const url = await getDownloadURL(r);
-            resolve({ url, path });
+            finish({ url, path });
           } catch (err) {
             storageUsable = false;
             console.warn("Không lấy được URL tệp, chuyển sang Realtime Database:", err);
-            resolve(null);
+            finish(null);
           }
         }
       );
