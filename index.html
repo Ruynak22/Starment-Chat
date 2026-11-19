@@ -415,7 +415,7 @@
     import { formatFileSize, MAX_FILE_SIZE } from "./js/storage.js";
     import { initSettings, getSettings } from "./js/settings.js";
     import { initNotifications } from "./js/notifications.js";
-    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
+    import { onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
 
     initSettings();
     initNotifications();
@@ -586,6 +586,7 @@
       catch (e) { setStatus($("status"), friendlyError(e, "login"), "error"); }
     };
 
+    await setPersistence(auth, browserLocalPersistence);
     /* ---------- Chuyển view theo trạng thái đăng nhập ---------- */
     let myProfile = null;
     onAuthStateChanged(auth, async (u) => {
