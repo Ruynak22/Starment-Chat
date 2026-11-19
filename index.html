@@ -109,6 +109,9 @@
           </div>
         </button>
         <div class="header-actions">
+          <button type="button" id="btnSidebarToggle" class="btn btn-icon" title="Ẩn/hiện thanh bên" aria-label="Ẩn/hiện thanh bên">
+            ←
+          </button>
           <button type="button" id="btnNotifications" class="btn btn-icon" title="Thông báo" aria-label="Thông báo">
             <span aria-hidden="true">🔔</span>
             <span id="notifBadge" class="notif-badge hidden">0</span>
@@ -125,6 +128,7 @@
           <input id="searchInput" class="input" placeholder="Tìm @username, UID hoặc tên..." />
           <button id="btnSearch" class="btn btn-primary btn-sm">Tìm</button>
         </div>
+        <button id="btnCreateGroup" class="btn" style="margin-top:.5rem; width:100%;">+ Tạo nhóm</button>
         <ul id="searchResults" class="user-list"></ul>
       </section>
 
@@ -148,6 +152,14 @@
           <strong id="chatName">Chọn một cuộc trò chuyện</strong>
           <span id="chatStatus" class="chat-status"></span>
           <span id="chatStreak" class="chat-streak"></span>
+        </div>
+        <div class="chat-header-actions">
+          <button id="btnPinChat" class="btn btn-icon" title="Ghim cuộc trò chuyện" aria-label="Ghim">
+            📌
+          </button>
+          <button id="btnBlockChat" class="btn btn-icon" title="Chặn" aria-label="Chặn">
+            🚫
+          </button>
         </div>
       </header>
 
@@ -196,6 +208,17 @@
           <span>Ảnh, video, tài liệu · ảnh lớn sẽ được tự động nén</span>
         </div>
       </div>
+
+      <!-- Context menu (right-click) -->
+      <div id="contextMenu" class="context-menu hidden" role="menu">
+        <ul>
+          <li data-action="block"><span>🚫</span> Chặn</li>
+          <li data-action="unblock"><span>🔓</span> Bỏ chắn</li>
+          <li data-action="delete"><span>🗑️</span> Xóa kết nối</li>
+          <li data-action="pin"><span>📌</span> Ghim</li>
+          <li data-action="unpin"><span>📌</span> Bỏ ghim</li>
+        </ul>
+      </div>
     </main>
   </div>
 
@@ -231,12 +254,14 @@
           <small class="field-hint">3–20 ký tự: chữ, số, dấu _. Không dấu cách.</small>
         </label>
 
+        <div id="usernameCooldownInfo" class="field-hint hidden"></div>
+
         <p id="profileStatus" class="status-text"></p>
       </div>
 
       <footer class="modal-foot">
         <button type="button" id="btnProfileCancel" class="btn">Hủy</button>
-        <button type="button" id="btnProfileSave" class="btn btn-primary">Lưu thay đổi</button>
+        <button type="button" id="btnProfileSave" class="btn btn-primary hidden">Lưu thay đổi</button>
       </footer>
     </div>
   </div>
@@ -282,6 +307,20 @@
               <span id="settingsEmail" class="setting-desc">—</span>
             </div>
             <button type="button" id="btnSettingsPassword" class="btn btn-sm">Đổi mật khẩu</button>
+          </div>
+        </section>
+
+        <section class="settings-group">
+          <h3>Ngôn ngữ</h3>
+          <div class="setting-row">
+            <div class="setting-label">
+              <strong>Chọn ngôn ngữ</strong>
+              <span class="setting-desc">Hiển thị giao diện bằng tiếng Việt</span>
+            </div>
+            <select id="settingsLanguage" class="input" style="max-width:160px;">
+              <option value="vi">Tiếng Việt</option>
+              <option value="en">English</option>
+            </select>
           </div>
         </section>
 
@@ -616,10 +655,42 @@
       const letter = (p.displayName || auth.currentUser?.email || "?").charAt(0).toUpperCase();
       $("profileAvatar").textContent = letter;
       setStatus($("profileStatus"), "");
+      updateSaveButtonState();
+      updateUsernameCooldownInfo(p);
       profileModal.classList.remove("hidden", "closing");
       document.body.classList.add("modal-open");
       setTimeout(() => $("profileDisplayName").focus(), 60);
     }
+
+    function updateSaveButtonState() {
+      const btn = $("btnProfileSave");
+      const displayName = $("profileDisplayName").value.trim();
+      const username = $("profileUsername").value;
+      const p = myProfile || {};
+      const changed = (displayName !== (p.displayName || "")) || (username !== (p.username || ""));
+      btn.classList.toggle("hidden", !changed);
+    }
+
+    function updateUsernameCooldownInfo(profile) {
+      const info = $("usernameCooldownInfo");
+      if (!profile || !profile.username || !profile.usernameChangedAt) {
+        info.classList.add("hidden");
+        return;
+      }
+      const lastChange = profile.usernameChangedAt.toDate ? profile.usernameChangedAt.toDate() : new Date(profile.usernameChangedAt);
+      const now = new Date();
+      const diffDays = (now - lastChange) / (1000 * 60 * 60 * 24);
+      const remaining = Math.max(0, 10 - Math.ceil(diffDays));
+      if (remaining > 0) {
+        info.textContent = `Còn ${remaining} ngày mới có thể đổi username lần nữa.`;
+        info.classList.remove("hidden");
+      } else {
+        info.classList.add("hidden");
+      }
+    }
+
+    $("profileDisplayName").addEventListener("input", updateSaveButtonState);
+    $("profileUsername").addEventListener("input", updateSaveButtonState);
     function closeProfileModal() {
       if (profileModal.classList.contains("hidden") || profileModal.classList.contains("closing")) return;
       profileModal.classList.add("closing");
@@ -974,6 +1045,23 @@
         $("btnSend").click();
       }
     };
+
+    /* ---------- Tạo nhóm ---------- */
+    $("btnCreateGroup")?.addEventListener("click", () => {
+      const name = prompt("Tên nhóm:", "Nhóm mới");
+      if (!name) return;
+      const membersStr = prompt("Danh sách UID thành viên (phân cách bằng dấu cách):", "");
+      const members = (membersStr || "").trim().split(/\s+/).filter(Boolean);
+      if (members.length === 0) {
+        notify("Vui lòng nhập ít nhất 1 UID.");
+        return;
+      }
+      const uid = window.app?.currentUser?.()?.uid;
+      if (!uid) return;
+      const allMembers = [uid, ...members];
+      const chatId = "group_" + allMembers.sort().join("_");
+      window.app.openChatByChatId?.(chatId, allMembers, name);
+    });
   </script>
   <script type="module">
     import { sounds } from "./js/sounds.js";

@@ -19,7 +19,8 @@ const DEFAULTS = {
   notifDesktop: false,
   notifPreview: true,
   enterToSend: true,
-  compact: false
+  compact: false,
+  language: "vi"
 };
 
 const BOOL_KEYS = ["notifInApp", "notifSound", "notifDesktop", "notifPreview", "enterToSend", "compact"];
@@ -135,6 +136,9 @@ function syncControls() {
     const key = input.dataset.setting;
     if (key in settings) input.checked = !!settings[key];
   });
+  // Đồng bộ select ngôn ngữ
+  const langSelect = document.getElementById("settingsLanguage");
+  if (langSelect && settings.language) langSelect.value = settings.language;
 }
 
 /* ---------- Quyền thông báo hệ thống ---------- */
@@ -213,6 +217,14 @@ export function initSettings() {
       updateSetting(key, input.checked);
     });
   });
+
+  // Ngôn ngữ
+  const langSelect = document.getElementById("settingsLanguage");
+  if (langSelect) {
+    langSelect.addEventListener("change", () => {
+      updateSetting("language", langSelect.value);
+    });
+  }
 
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && !settingsModal()?.classList.contains("hidden")) closeSettings();

@@ -6,13 +6,6 @@ import {
   ref, uploadBytes, getDownloadURL
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-storage.js";
 
-/* ============================================================
-   USERNAME (@)
-   - Chuẩn hoá: bỏ @ đầu, cắt khoảng trắng, chuyển thành chữ thường.
-   - Định dạng: 3–20 ký tự, bắt đầu bằng chữ, chỉ chữ/số/dấu gạch dưới.
-   - Tính duy nhất được cài ở tầng client (kiểm tra trước) VÀ tầng
-     Security Rules (usernames/{name} chỉ được tạo 1 lần).
-   ============================================================ */
 export const USERNAME_MIN = 3;
 export const USERNAME_MAX = 20;
 const USERNAME_RE = /^[a-z][a-z0-9_]{2,19}$/;
@@ -121,6 +114,21 @@ export async function updateUsername(uid, raw) {
     throw new Error("Username đã được sử dụng.");
   }
 
+  // Kiểm tra giới hạn đổi username: chỉ được đổi 1 lần mỗi 10 ngày.
+  const prof = await getUserProfile(uid);
+  if (prof && prof.username && prof.usernameChangedAt) {
+    const lastChange = prof.usernameChangedAt.toDate ? prof.usernameChangedAt.toDate() : new Date(prof.usernameChangedAt);
+    const now = new Date();
+    const diffDays = (now - lastChange) / (1000 * 60 * 60 * 24);
+    if (diffDays < 10 && prof.username === uname) {
+      // Không đổi gì cả
+      return;
+    }
+    if (diffDays < 10) {
+      throw new Error("Chỉ được đổi username 1 lần mỗi 10 ngày.");
+    }
+  }
+
   const cur = await getDoc(doc(db, "users", uid));
   const old = cur.exists() ? cur.data().usernameLower : "";
 
@@ -146,7 +154,8 @@ export async function updateUsername(uid, raw) {
   });
   await updateDoc(doc(db, "users", uid), {
     username: uname,
-    usernameLower: uname
+    usernameLower: uname,
+    usernameChangedAt: serverTimestamp()
   });
 }
 
@@ -159,4 +168,43 @@ export async function updateAvatar(uid, file) {
   const url = await getDownloadURL(r);
   await updateDoc(doc(db, "users", uid), { photoURL: url });
   return url;
+}
+
+/* ============================================================
+   CHẶN / BỎ CHẶN
+   - Lưu danh sách UID bị blocked trong field `blocked` (array).
+   - Khi một người bị blocked: không gửi lời mời kết bạn, không hiển thị
+     tin nhắn của họ, không hiện trong danh sách kết nối.
+   ============================================================ */
+export async function blockUser(uid, targetUid) {
+  if (uid === targetUid) throw new Error("Không thể tự chắn mình.");
+  const snap = await getDoc(doc(db, "users", uid));
+  const blocked = snap.exists() ? (snap.data().blocked || []) : [];
+  if (!blocked.includes(targetUid)) {
+    blocked.push(targetUid);
+  }
+  await updateDoc(doc(db, "users", uid), { blocked });
+}
+
+export async function unblockUser(uid, targetUid) {
+  const snap = await getDoc(doc(db, "users", uid));
+  if (!snap.exists()) return;
+  const blocked = snap.data().blocked || [];
+  const next = blocked.filter((x) => x !== targetUid);
+  if (next.length !== blocked.length) {
+    await updateDoc(doc(db, "users", uid), { blocked: next });
+  }
+}
+
+export async function isBlocked(uid, targetUid) {
+  if (!targetUid) return false;
+  const snap = await getDoc(doc(db, "users", uid));
+  if (!snap.exists()) return false;
+  return (snap.data().blocked || []).includes(targetUid);
+}
+
+export async function getBlockedUids(uid) {
+  const snap = await getDoc(doc(db, "users", uid));
+  if (!snap.exists()) return [];
+  return snap.data().blocked || [];
 }

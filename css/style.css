@@ -260,6 +260,41 @@ button, a, .user-item { touch-action: manipulation; }
   color: var(--text-dim);
 }
 
+/* Pinned messages bar */
+.pinned-bar {
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+  padding: .5rem .8rem;
+  background: var(--bg-elev);
+  border-bottom: 1px solid var(--border);
+  max-height: 120px;
+  overflow-y: auto;
+}
+.pinned-item {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  font-size: .78rem;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: .25rem .5rem;
+  border-radius: var(--radius-sm);
+  background: var(--bg-side);
+}
+.pinned-item:hover { background: var(--bg-hover); color: var(--text); }
+
+/* Sidebar hide button */
+.sidebar-toggle-btn {
+  position: absolute;
+  top: .5rem;
+  right: .5rem;
+  width: 28px; height: 28px;
+  padding: 0;
+  font-size: .85rem;
+}
+.sidebar.hidden { transform: translateX(-100%); transition: transform .25s ease; }
+
 /* ---------- Toast ---------- */
 .toast {
   position: fixed;
@@ -992,9 +1027,55 @@ button, a, .user-item { touch-action: manipulation; }
   opacity: 1;
 }
 
-/* Chat status online/offline */
-.chat-status.online { color: var(--success); }
-.chat-status.offline { color: var(--text-dim); }
+.chat-header-actions {
+  display: flex;
+  gap: .3rem;
+  margin-left: auto;
+}
+.chat-header-actions .btn-icon {
+  width: 32px; height: 32px;
+  font-size: .9rem;
+}
+.chat-header-actions .btn-icon.active {
+  color: var(--accent);
+  background: var(--bg-active);
+}
+
+/* Context menu */
+.context-menu {
+  position: fixed;
+  z-index: 500;
+  min-width: 180px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  padding: .4rem 0;
+  display: none;
+}
+.context-menu.show { display: block; animation: popIn .15s ease; }
+.context-menu ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.context-menu li {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  padding: .5rem .8rem;
+  cursor: pointer;
+  font-size: .85rem;
+}
+.context-menu li:hover { background: var(--bg-hover); }
+.context-menu li span { font-size: .9rem; }
+
+/* Pinned chat indicator */
+.conn-item.pinned::before {
+  content: "📌";
+  font-size: .65rem;
+  margin-right: .3rem;
+}
 
 /* Streak display */
 .chat-streak {
@@ -1118,6 +1199,13 @@ button, a, .user-item { touch-action: manipulation; }
 .msg-action-btn:hover { background: var(--accent); color: #fff; }
 .msg.incoming .msg-actions { justify-content: flex-start; }
 .msg.outgoing .msg-actions { justify-content: flex-end; }
+
+/* Deleted / retracted message */
+.msg-deleted {
+  font-size: .78rem;
+  color: var(--text-faint);
+  font-style: italic;
+}
 
 /* Highlight effect for scroll to message */
 .msg.highlight {

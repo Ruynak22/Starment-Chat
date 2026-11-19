@@ -1,9 +1,9 @@
 import { auth } from "./firebase-config.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
-import { ensureUserProfile, getUserProfile } from "./users.js";
+import { ensureUserProfile, getUserProfile, blockUser, unblockUser, isBlocked, getBlockedUids } from "./users.js";
 import { setPresence } from "./presence.js";
-import { searchByUid, searchByName, sendFriendRequest, listIncomingRequests, respondRequest, getConnectedUsers, MAX_CONNECTIONS } from "./connections.js";
-import { chatIdFor, sendMessage, listenMessages, markMessagesAsRead, listenMessageStatus, listenChat, getStreak, STREAK_MILESTONES } from "./messages.js";
+import { searchByUid, searchByName, sendFriendRequest, listIncomingRequests, respondRequest, getConnectedUsers, MAX_CONNECTIONS, removeConnection } from "./connections.js";
+import { chatIdFor, sendMessage, listenMessages, markMessagesAsRead, listenMessageStatus, listenChat, getStreak, STREAK_MILESTONES, deleteMessage, retractMessage, pinMessage, unpinMessage, getPinnedMessages, pinChat, unpinChat, isChatPinned, updateChat } from "./messages.js";
 import { uploadChatAttachment, getAttachmentUrl, downloadAttachment, formatFileSize } from "./storage.js";
 import { setTyping } from "./presence.js";
 import { listenTyping } from "./typing.js";
@@ -11,6 +11,7 @@ import { listenPresence } from "./presence.js";
 
 const $ = (id) => document.getElementById(id);
 const LAST_CHAT_KEY = "starment_last_chat";
+const PINNED_CHATS_KEY = "starment_pinned_chats";
 let currentUser = null;
 let currentChatId = null;
 let currentChatPartnerUid = null;
@@ -510,6 +511,51 @@ function updateChatHeaderStatus(presence) {
   }
 }
 
+function updatePinButton() {
+  const btn = $("btnPinChat");
+  if (!btn || !currentChatPartnerUid) return;
+  const pinned = isChatPinned(currentChatPartnerUid);
+  btn.classList.toggle("active", pinned);
+  btn.title = pinned ? "Bỏ ghim" : "Ghim";
+}
+
+async function togglePinChat() {
+  if (!currentChatPartnerUid) return;
+  const pinned = isChatPinned(currentChatPartnerUid);
+  if (pinned) {
+    await unpinChat(currentChatPartnerUid);
+  } else {
+    await pinChat(currentChatPartnerUid);
+  }
+  updatePinButton();
+  refreshConnections();
+}
+
+async function toggleBlockChat() {
+  if (!currentChatPartnerUid) return;
+  const blocked = await isBlocked(currentUser.uid, currentChatPartnerUid);
+  if (blocked) {
+    await unblockUser(currentUser.uid, currentChatPartnerUid);
+    notify("Đã bỏ chắn.");
+  } else {
+    if (confirm(`Chặn ${currentChatPartnerUid.slice(0, 8)}…? Tin nhắn của họ sẽ không hiện trong danh sách.`)) {
+      await blockUser(currentUser.uid, currentChatPartnerUid);
+      notify("Đã chắn.");
+      closeChat();
+    }
+  }
+  refreshConnections();
+}
+
+async function removeCurrentConnection() {
+  if (!currentChatPartnerUid) return;
+  if (confirm("Xóa kết nối với người này?")) {
+    await removeConnection(currentUser.uid, currentChatPartnerUid);
+    closeChat();
+    refreshConnections();
+  }
+}
+
 async function openChat(otherUid) {
   const sessionId = ++chatSessionId;
   currentChatId = chatIdFor(currentUser.uid, otherUid);
@@ -546,6 +592,17 @@ async function openChat(otherUid) {
   if (statusEl) statusEl.textContent = profile?.username ? "@" + profile.username : "";
   const chatAvatar = $("chatAvatar");
   if (chatAvatar) chatAvatar.textContent = (profile?.displayName || "?").charAt(0).toUpperCase();
+
+  // Cập nhật nút pin/block
+  updatePinButton();
+  const blockBtn = $("btnBlockChat");
+  if (blockBtn) {
+    const blocked = await isBlocked(currentUser.uid, otherUid);
+    blockBtn.title = blocked ? "Bỏ chắn" : "Chặn";
+  }
+
+  // Hiển thị các tin đã ghim
+  renderPinnedMessages(chatIdAtOpen, box);
 
   // Listen to partner's presence
   unsubscribePresence = listenPresence(otherUid, (presence) => {
@@ -686,11 +743,72 @@ async function openChat(otherUid) {
           startReply(m);
         };
         actions.appendChild(replyBtn);
+
+        // Pin button
+        const pinBtn = document.createElement("button");
+        pinBtn.className = "msg-action-btn";
+        pinBtn.textContent = "📌 Ghim";
+        pinBtn.onclick = async (e) => {
+          e.stopPropagation();
+          try {
+            await pinMessage(currentChatId, m.id, currentUser.uid);
+            notify("Đã ghim tin nhắn.");
+          } catch (err) {
+            notify(err?.message || "Không ghim được.");
+          }
+        };
+        actions.appendChild(pinBtn);
+
+        // Delete button (for sender)
+        const delBtn = document.createElement("button");
+        delBtn.className = "msg-action-btn";
+        delBtn.textContent = "🗑️ Xóa";
+        delBtn.onclick = async (e) => {
+          e.stopPropagation();
+          if (confirm("Xóa tin nhắn này vĩnh viễn?")) {
+            try {
+              await deleteMessage(currentChatId, m.id, currentUser.uid);
+              notify("Đã xóa tin nhắn.");
+            } catch (err) {
+              notify(err?.message || "Không xóa được.");
+            }
+          }
+        };
+        actions.appendChild(delBtn);
+
+        // Retract button (everyone)
+        const reBtn = document.createElement("button");
+        reBtn.className = "msg-action-btn";
+        reBtn.textContent = "↩️ Thu hồi";
+        reBtn.onclick = async (e) => {
+          e.stopPropagation();
+          try {
+            await retractMessage(currentChatId, m.id);
+            notify("Đã thu hồi tin nhắn.");
+          } catch (err) {
+            notify(err?.message || "Không thu hồi được.");
+          }
+        };
+        actions.appendChild(reBtn);
+
         bubble.appendChild(actions);
       }
 
-      box.appendChild(bubble);
-      attachLongPress(bubble, mine, m);
+      // Handle deleted/retracted messages
+      if (m.deleted) {
+        const notice = document.createElement("span");
+        notice.className = "msg-deleted";
+        notice.textContent = "Đã xóa tin nhắn";
+        bubble.appendChild(notice);
+      } else if (m.retracted) {
+        const notice = document.createElement("span");
+        notice.className = "msg-deleted";
+        notice.textContent = "Đã thu hồi tin nhắn";
+        bubble.appendChild(notice);
+      } else {
+        box.appendChild(bubble);
+        attachLongPress(bubble, mine, m);
+      }
     }
 
     if (!isInitialBatch && !stickToBottom) {
@@ -888,6 +1006,26 @@ function updateStreakDisplay() {
   streakEl.innerHTML = html;
 }
 
+async function renderPinnedMessages(chatId, box) {
+  const pinnedIds = await getPinnedMessages(chatId);
+  if (pinnedIds.length === 0) return;
+  // Lấy tin messages theo id
+  const { getDoc, doc } = await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js");
+  const pinnedContainer = document.createElement("div");
+  pinnedContainer.className = "pinned-bar";
+  for (const msgId of pinnedIds) {
+    const snap = await getDoc(doc(db, "chats", chatId, "messages", msgId));
+    if (!snap.exists()) continue;
+    const m = { id: snap.id, ...snap.data() };
+    const item = document.createElement("div");
+    item.className = "pinned-item";
+    item.innerHTML = `<span>📌</span><span>${m.text || "Tin nhắn đã ghim"}</span>`;
+    item.onclick = () => scrollToMessage(m.id);
+    pinnedContainer.appendChild(item);
+  }
+  box.parentNode.insertBefore(pinnedContainer, box);
+}
+
 function getStatusText(status) {
   switch (status) {
     case "seen": return "Đã xem";
@@ -901,4 +1039,106 @@ window.addEventListener("requests:changed", () => {
   if (currentUser) refreshConnections();
 });
 
-window.app = { searchByUid, searchByName, sendFriendRequest, listIncomingRequests, respondRequest, sendMessage, uploadChatAttachment, openChat, currentUser: () => currentUser, currentChatId: () => currentChatId, presenceCache, updateStatusDot, cancelReply, startReply, scrollToBottom, openImageViewer, get replyingToMsg() { return replyingToMsg; } };
+// Sidebar toggle
+$("btnSidebarToggle")?.addEventListener("click", () => {
+  const sidebar = document.querySelector(".sidebar");
+  const isHidden = sidebar.classList.toggle("hidden");
+  localStorage.setItem("starment_sidebar_hidden", isHidden ? "1" : "0");
+});
+
+// Restore sidebar state
+(function () {
+  const hidden = localStorage.getItem("starment_sidebar_hidden") === "1";
+  const sidebar = document.querySelector(".sidebar");
+  if (sidebar && hidden) sidebar.classList.add("hidden");
+})();
+
+// Context menu for connections
+let contextMenuTarget = null;
+const contextMenu = document.getElementById("contextMenu");
+if (contextMenu) {
+  contextMenu.addEventListener("click", async (e) => {
+    const li = e.target.closest("li");
+    if (!li || !contextMenuTarget) return;
+    const action = li.dataset.action;
+    const uid = contextMenuTarget;
+    contextMenu.classList.remove("show");
+    contextMenuTarget = null;
+
+    if (action === "block") {
+      if (await isBlocked(currentUser.uid, uid)) {
+        notify("Đã bị chắn rồi.");
+        return;
+      }
+      await blockUser(currentUser.uid, uid);
+      notify("Đã chắn.");
+      refreshConnections();
+    } else if (action === "unblock") {
+      await unblockUser(currentUser.uid, uid);
+      notify("Đã bỏ chắn.");
+      refreshConnections();
+    } else if (action === "delete") {
+      if (confirm("Xóa kết nối với người này?")) {
+        await removeConnection(currentUser.uid, uid);
+        refreshConnections();
+      }
+    } else if (action === "pin") {
+      await pinChat(uid);
+      refreshConnections();
+    } else if (action === "unpin") {
+      await unpinChat(uid);
+      refreshConnections();
+    }
+  });
+}
+document.addEventListener("click", () => {
+  if (contextMenu) contextMenu.classList.remove("show");
+});
+document.addEventListener("contextmenu", (e) => {
+  const li = e.target.closest("#connections .user-item");
+  if (!li || !currentUser) return;
+  // Lấy uid từ data-uid
+  const uid = li.dataset.uid;
+  if (!uid) return;
+  e.preventDefault();
+  contextMenuTarget = uid;
+  const blocked = false; // Sẽ check async
+  isBlocked(currentUser.uid, uid).then((b) => {
+    contextMenu.querySelectorAll("li").forEach((item) => {
+      item.style.display = "";
+      if (item.dataset.action === "unblock" && !b) item.style.display = "none";
+      if (item.dataset.action === "block" && b) item.style.display = "none";
+    });
+  });
+  contextMenu.style.left = e.pageX + "px";
+  contextMenu.style.top = e.pageY + "px";
+  contextMenu.classList.add("show");
+});
+
+// Header action buttons
+$("btnBlockChat")?.addEventListener("click", toggleBlockChat);
+$("btnPinChat")?.addEventListener("click", togglePinChat);
+
+window.app = {
+  searchByUid,
+  searchByName,
+  sendFriendRequest,
+  listIncomingRequests,
+  respondRequest,
+  sendMessage,
+  deleteMessage,
+  retractMessage,
+  pinMessage,
+  unpinMessage,
+  uploadChatAttachment,
+  openChat,
+  currentUser: () => currentUser,
+  currentChatId: () => currentChatId,
+  presenceCache,
+  updateStatusDot,
+  cancelReply,
+  startReply,
+  scrollToBottom,
+  openImageViewer,
+  get replyingToMsg() { return replyingToMsg; }
+};
