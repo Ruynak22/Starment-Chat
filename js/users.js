@@ -121,15 +121,20 @@ export async function updateUsername(uid, raw) {
     throw new Error("Username đã được sử dụng.");
   }
 
-  const cur = await getDoc(doc(db, "users", uid));
+const cur = await getDoc(doc(db, "users", uid));
   const old = cur.exists() ? cur.data().usernameLower : "";
 
   if (old === uname) {
-    // Không đổi — chỉ đảm bảo trường username đã có
     if (cur.exists() && !cur.data().username) {
       await updateDoc(doc(db, "users", uid), { username: uname });
     }
     return;
+  }
+
+  const check = await canChangeUsername(uid);
+  if (!check.ok) {
+    const days = Math.ceil(check.remainingMs / (24 * 60 * 60 * 1000));
+    throw new Error(`Username chỉ được đổi 1 lần mỗi 10 ngày. Còn ${days} ngày.`);
   }
 
   // Xoá username cũ trong registry (nếu thuộc về mình)
@@ -146,11 +151,39 @@ export async function updateUsername(uid, raw) {
   });
   await updateDoc(doc(db, "users", uid), {
     username: uname,
-    usernameLower: uname
+    usernameLower: uname,
+    usernameChangedAt: Date.now()
   });
 }
 
-/* Cập nhật avatar (yêu cầu Firebase Storage đã bật). */
+/* ============================================================
+   CHẶN NGƯỜI DÙNG (block/unblock)
+   ============================================================ */
+export async function getBlockedUids(uid) {
+  const cur = await getDoc(doc(db, "users", uid));
+  return cur.exists() ? (cur.data().blockedUids || []) : [];
+}
+
+export async function isBlocked(uid, otherUid) {
+  const list = await getBlockedUids(uid);
+  return list.includes(otherUid);
+}
+
+export async function blockUser(uid, otherUid) {
+  const cur = await getDoc(doc(db, "users", uid));
+  const list = cur.exists() ? (cur.data().blockedUids || []) : [];
+  if (!list.includes(otherUid)) {
+    list.push(otherUid);
+    await updateDoc(doc(db, "users", uid), { blockedUids: list });
+  }
+}
+
+export async function unblockUser(uid, otherUid) {
+  const cur = await getDoc(doc(db, "users", uid));
+  const list = cur.exists() ? (cur.data().blockedUids || []) : [];
+  const next = list.filter((x) => x !== otherUid);
+  await updateDoc(doc(db, "users", uid), { blockedUids: next });
+}
 export async function updateAvatar(uid, file) {
   if (!file.type.startsWith("image/")) throw new Error("Invalid MIME");
   if (file.size > 2 * 1024 * 1024) throw new Error("File too large");

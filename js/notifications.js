@@ -375,8 +375,11 @@ function handleLatestMessage(partnerUid, chatId, msgId, data) {
   meta.chatLast[chatId] = { id: msgId, at };
   saveMeta();
 
-  // Tin của chính mình hoặc snapshot lặp lại → chỉ ghi nhớ.
-  if (data?.senderUid === myUid || prev?.id === msgId) return;
+  // Tắt thông báo từng người
+  try {
+    const muted = JSON.parse(localStorage.getItem("mutedUsers_" + myUid) || "[]");
+    if (Array.isArray(muted) && muted.includes(partnerUid)) return;
+  } catch { /* ignore */ }
   // Lần đầu thấy hội thoại: chỉ báo nếu tin đến trong phiên hiện tại
   // (tránh dồn thông báo cho toàn bộ lịch sử khi vừa đăng nhập).
   if (!prev && at <= SESSION_STARTED_AT) return;

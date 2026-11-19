@@ -45,7 +45,11 @@ body {
 /* Chạm: không zoom/giật, chạm mượt */
 button, a, .user-item { touch-action: manipulation; }
 
-.hidden { display: none !important; }
+body.sidebar-collapsed .sidebar { display: none; }
+body.no-animations *, body.no-animations *::before, body.no-animations *::after {
+  animation: none !important;
+  transition: none !important;
+}
 .grow { flex: 1; }
 
 /* Nút quay lại chỉ hiện trên mobile */
@@ -497,7 +501,11 @@ button, a, .user-item { touch-action: manipulation; }
   to { opacity: 1; transform: scale(1); filter: blur(0); }
 }
 
-.msg-text { margin-top: .35rem; }
+.msg-recalled {
+  font-style: italic;
+  color: var(--text-faint);
+  font-size: .85rem;
+}
 
 .msg-file {
   display: flex;

@@ -1,6 +1,6 @@
 import { db } from "./firebase-config.js";
 import {
-  collection, doc, addDoc, query, orderBy, limit, getDocs, onSnapshot, serverTimestamp, updateDoc, writeBatch, getDoc, setDoc
+  collection, doc, addDoc, query, orderBy, limit, getDocs, onSnapshot, serverTimestamp, updateDoc, writeBatch, getDoc, setDoc, arrayUnion
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 
 export function chatIdFor(a, b) {
@@ -160,6 +160,33 @@ async function updateStreak(chatId, senderUid) {
     }
   }
   await updateDoc(chatRef, { streak });
+}
+
+export async function recallMessage(chatId, msgId) {
+  await updateDoc(doc(db, "chats", chatId, "messages", msgId), {
+    recalled: true,
+    text: null,
+    imageUrl: null,
+    attachment: null
+  });
+}
+
+export async function deleteMessageForMe(chatId, msgId, uid) {
+  await updateDoc(doc(db, "chats", chatId, "messages", msgId), {
+    deletedFor: arrayUnion(uid)
+  });
+}
+
+export async function pinMessage(chatId, msgId, uid) {
+  const chatRef = doc(db, "chats", chatId);
+  await updateDoc(chatRef, { pinnedMessageIds: arrayUnion(msgId) });
+}
+
+export async function unpinMessage(chatId, msgId) {
+  const chatRef = doc(db, "chats", chatId);
+  const snap = await getDoc(chatRef);
+  const list = snap.exists() ? (snap.data().pinnedMessageIds || []) : [];
+  await updateDoc(chatRef, { pinnedMessageIds: list.filter((x) => x !== msgId) });
 }
 
 export async function getStreak(chatId) {

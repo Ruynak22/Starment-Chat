@@ -109,6 +109,9 @@
           </div>
         </button>
         <div class="header-actions">
+          <button type="button" id="btnToggleSidebar" class="btn btn-icon" title="Ẩn/hiện thanh bên" aria-label="Ẩn/hiện thanh bên">
+            <span aria-hidden="true">◀</span>
+          </button>
           <button type="button" id="btnNotifications" class="btn btn-icon" title="Thông báo" aria-label="Thông báo">
             <span aria-hidden="true">🔔</span>
             <span id="notifBadge" class="notif-badge hidden">0</span>
@@ -134,7 +137,10 @@
       </section>
 
       <section id="connectionsSection" class="side-block grow">
-        <h2 class="side-title">Kết nối</h2>
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <h2 class="side-title" style="margin:0;">Kết nối</h2>
+          <button type="button" id="btnCreateGroup" class="btn btn-sm" title="Tạo nhóm">+ Nhóm</button>
+        </div>
         <ul id="connections" class="user-list"></ul>
       </section>
     </aside>
@@ -148,6 +154,11 @@
           <strong id="chatName">Chọn một cuộc trò chuyện</strong>
           <span id="chatStatus" class="chat-status"></span>
           <span id="chatStreak" class="chat-streak"></span>
+        </div>
+        <div class="header-actions">
+          <button type="button" id="btnPinFriend" class="btn btn-icon" title="Ghim bạn bè" aria-label="Ghim bạn bè">📌</button>
+          <button type="button" id="btnMuteUser" class="btn btn-icon" title="Tắt thông báo" aria-label="Tắt thông báo">🔕</button>
+          <button type="button" id="btnBlockUser" class="btn btn-icon" title="Chặn" aria-label="Chặn">🚫</button>
         </div>
       </header>
 
@@ -264,7 +275,27 @@
     </div>
   </div>
 
-  <!-- ===================== MODAL CÀI ĐẶT ===================== -->
+<!-- ===================== MODAL TẠO NHÓM ===================== -->
+  <div id="groupModal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-backdrop" data-close="group"></div>
+    <div class="modal-card">
+      <header class="modal-head">
+        <h2>Tạo nhóm</h2>
+        <button type="button" id="btnGroupClose" class="btn btn-icon" title="Đóng">✕</button>
+      </header>
+      <div class="modal-body">
+        <label class="field">
+          <span>Tên nhóm</span>
+          <input id="groupName" type="text" placeholder="Nhóm của tôi" />
+        </label>
+        <div id="groupMembers" class="user-list" style="max-height:200px;overflow:auto;"></div>
+      </div>
+      <footer class="modal-foot">
+        <button type="button" id="btnGroupCancel" class="btn">Hủy</button>
+        <button type="button" id="btnGroupCreate" class="btn btn-primary">Tạo</button>
+      </footer>
+    </div>
+  </div>
   <div id="settingsModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle">
     <div class="modal-backdrop" data-close="settings"></div>
     <div class="modal-card settings-card">
@@ -329,44 +360,35 @@
           <h3>Thông báo</h3>
           <div class="setting-row">
             <div class="setting-label">
-              <strong>Thông báo trong ứng dụng</strong>
-              <span class="setting-desc">Chuông và danh sách thông báo</span>
+              <strong>Giao diện gọn</strong>
+              <span class="setting-desc">Giảm khoảng cách giữa các tin nhắn</span>
             </div>
             <label class="switch">
-              <input type="checkbox" data-setting="notifInApp" aria-label="Thông báo trong ứng dụng" />
+              <input type="checkbox" data-setting="compact" aria-label="Giao diện gọn" />
               <span class="switch-track"></span>
             </label>
           </div>
+        </section>
 
+        <section class="settings-group">
+          <h3>Nâng cao</h3>
           <div class="setting-row">
             <div class="setting-label">
-              <strong>Âm thanh</strong>
-              <span class="setting-desc">Phát âm báo khi có thông báo mới</span>
+              <strong>Xác nhận đã đọc</strong>
+              <span class="setting-desc">Gửi trạng thái "đã xem" cho người khác</span>
             </div>
             <label class="switch">
-              <input type="checkbox" data-setting="notifSound" aria-label="Âm thanh thông báo" />
+              <input type="checkbox" data-setting="readReceipts" aria-label="Xác nhận đã đọc" />
               <span class="switch-track"></span>
             </label>
           </div>
-
           <div class="setting-row">
             <div class="setting-label">
-              <strong>Thông báo hệ thống</strong>
-              <span class="setting-desc">Hiển thị thông báo của trình duyệt khi ẩn tab</span>
+              <strong>Hiển thị đang nhập</strong>
+              <span class="setting-desc">Cho người khác biết khi bạn đang gõ</span>
             </div>
             <label class="switch">
-              <input type="checkbox" data-setting="notifDesktop" aria-label="Thông báo hệ thống" />
-              <span class="switch-track"></span>
-            </label>
-          </div>
-
-          <div class="setting-row">
-            <div class="setting-label">
-              <strong>Hiện nội dung tin nhắn</strong>
-              <span class="setting-desc">Tắt để ẩn nội dung trong thông báo</span>
-            </div>
-            <label class="switch">
-              <input type="checkbox" data-setting="notifPreview" aria-label="Hiện nội dung tin nhắn" />
+              <input type="checkbox" data-setting="typingIndicator" aria-label="Hiển thị đang nhập" />
               <span class="switch-track"></span>
             </label>
           </div>
@@ -397,7 +419,7 @@
   <script type="module">
     import { auth } from "./js/firebase-config.js";
     import { register, login, logout, resetPassword, friendlyError } from "./js/auth.js";
-    import { getUserProfile, createUserProfile, updateDisplayName, updateUsername, validateUsername } from "./js/users.js";
+    import { getUserProfile, createUserProfile, updateDisplayName, updateUsername, validateUsername, blockUser, unblockUser, isBlocked } from "./js/users.js";
     import { searchByUsername } from "./js/connections.js";
     import "./js/app.js";
     import { previewImage, clearImagePreview } from "./js/images.js";
@@ -486,10 +508,13 @@
         btn.textContent = "Đang tạo…";
         try {
           const user = await register(email, password, displayName);
-          try {
-            await createUserProfile(user, { displayName, username: usernameRaw });
-            setStatus($("status"), "Đăng ký thành công", "success");
-          } catch (pe) {
+           try {
+              await createUserProfile(user, { displayName, username: usernameRaw });
+              const av2 = $("authView"); const ap2 = $("appView");
+              if (av2) { av2.classList.add("hidden"); av2.style.display = "none"; }
+              if (ap2) { ap2.classList.remove("hidden"); ap2.style.display = "flex"; }
+              setStatus($("status"), "Đăng ký thành công", "success");
+           } catch (pe) {
             setStatus($("status"), "Đã tạo tài khoản nhưng chưa lưu được hồ sơ: " + pe.message, "error");
           }
         } catch (err) {
@@ -499,10 +524,13 @@
           btn.textContent = originalText;
         }
       } else {
-        try {
-          await login(email, password);
-          setStatus($("status"), "Đăng nhập thành công", "success");
-        } catch (err) {
+         try {
+            await login(email, password);
+            const av = $("authView"); const ap = $("appView");
+            if (av) { av.classList.add("hidden"); av.style.display = "none"; }
+            if (ap) { ap.classList.remove("hidden"); ap.style.display = "flex"; }
+            setStatus($("status"), "Đăng nhập thành công", "success");
+         } catch (err) {
           setStatus($("status"), friendlyError(err, "login"), "error");
         }
       }
@@ -619,6 +647,8 @@
       profileModal.classList.remove("hidden", "closing");
       document.body.classList.add("modal-open");
       setTimeout(() => $("profileDisplayName").focus(), 60);
+      // reset save button state
+      updateProfileSaveVisibility();
     }
     function closeProfileModal() {
       if (profileModal.classList.contains("hidden") || profileModal.classList.contains("closing")) return;
@@ -633,7 +663,19 @@
       return window.app?.currentUser?.()?.uid || auth.currentUser?.uid;
     }
 
-    $("btnProfile").onclick = (e) => { e.preventDefault(); openProfileModal(); };
+    function updateProfileSaveVisibility() {
+      const btn = $("btnProfileSave");
+      if (!btn) return;
+      const p = myProfile || {};
+      const dnChanged = $("profileDisplayName").value.trim() !== (p.displayName || "").trim();
+      const unChanged = normalizeUsernameInput($("profileUsername").value) !== (p.username || "");
+      const changed = dnChanged || unChanged;
+      btn.classList.toggle("hidden", !changed);
+    }
+    function normalizeUsernameInput(v) { return (v || "").trim().replace(/^@+/, "").toLowerCase(); }
+
+    $("profileDisplayName").addEventListener("input", updateProfileSaveVisibility);
+    $("profileUsername").addEventListener("input", updateProfileSaveVisibility);
     $("btnProfileClose").onclick = closeProfileModal;
     $("btnProfileCancel").onclick = closeProfileModal;
     profileModal.querySelector('[data-close="profile"]').onclick = closeProfileModal;
@@ -674,7 +716,108 @@
       }
     };
 
-    /* ---------- Tìm kiếm ---------- */
+    /* ---------- Chặn / ghim ---------- */
+    $("btnBlockUser").onclick = async () => {
+      const otherUid = window.app?.currentChatPartnerUid?.();
+      const myUid = window.app?.currentUser?.()?.uid;
+      if (!otherUid || !myUid) return;
+      try {
+        const blocked = await isBlocked(myUid, otherUid);
+        if (blocked) {
+          await unblockUser(myUid, otherUid);
+          notify("Đã bỏ chặn");
+        } else {
+          await blockUser(myUid, otherUid);
+          notify("Đã chặn người dùng");
+          closeChat();
+        }
+      } catch (e) { notify(e?.message || "Lỗi"); }
+    };
+    $("btnMuteUser").onclick = () => {
+      const otherUid = window.app?.currentChatPartnerUid?.();
+      const myUid = window.app?.currentUser?.()?.uid;
+      if (!otherUid || !myUid) return;
+      const key = "mutedUsers_" + myUid;
+      let list = [];
+      try { list = JSON.parse(localStorage.getItem(key) || "[]"); } catch {}
+      if (list.includes(otherUid)) {
+        list = list.filter((x) => x !== otherUid);
+        notify("Đã bật thông báo");
+      } else {
+        list.push(otherUid);
+        notify("Đã tắt thông báo");
+      }
+      localStorage.setItem(key, JSON.stringify(list));
+    };
+    $("btnPinFriend").onclick = () => {
+      const otherUid = window.app?.currentChatPartnerUid?.();
+      const myUid = window.app?.currentUser?.()?.uid;
+      if (!otherUid || !myUid) return;
+      const key = "pinnedFriends_" + myUid;
+      let list = [];
+      try { list = JSON.parse(localStorage.getItem(key) || "[]"); } catch {}
+      if (list.includes(otherUid)) {
+        list = list.filter((x) => x !== otherUid);
+        notify("Đã bỏ ghim bạn bè");
+      } else {
+        list.unshift(otherUid);
+        notify("Đã ghim bạn bè");
+      }
+      localStorage.setItem(key, JSON.stringify(list));
+    };
+/* ---------- Tạo nhóm ---------- */
+    $("btnCreateGroup").onclick = async () => {
+      const membersEl = $("groupMembers");
+      membersEl.innerHTML = "";
+      let users = [];
+      try {
+        const { getConnectedUsers } = await import("./js/connections.js");
+        users = await getConnectedUsers(window.app.currentUser().uid);
+      } catch {}
+      for (const uid of users) {
+        const p = await getUserProfile(uid);
+        const li = document.createElement("li");
+        li.className = "user-item";
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.value = uid;
+        cb.checked = true;
+        const info = document.createElement("div");
+        info.className = "user-info";
+        const nm = document.createElement("strong");
+        nm.textContent = p?.displayName || uid.slice(0, 8);
+        info.append(nm);
+        li.append(cb, info);
+        membersEl.appendChild(li);
+      }
+      $("groupModal").classList.remove("hidden", "closing");
+      document.body.classList.add("modal-open");
+    };
+    $("btnGroupClose").onclick = () => { $("groupModal").classList.add("hidden"); document.body.classList.remove("modal-open"); };
+    $("btnGroupCancel").onclick = () => { $("groupModal").classList.add("hidden"); document.body.classList.remove("modal-open"); };
+    $("btnGroupCreate").onclick = async () => {
+      const name = $("groupName").value.trim() || "Nhóm";
+      const cbs = $("groupMembers").querySelectorAll('input[type="checkbox"]:checked');
+      const memberUids = Array.from(cbs).map((c) => c.value);
+      const myUid = window.app.currentUser().uid;
+      if (!memberUids.includes(myUid)) memberUids.unshift(myUid);
+      try {
+        const { doc, setDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js");
+        const { db } = await import("./js/firebase-config.js");
+        const groupId = "group_" + Date.now();
+        await setDoc(doc(db, "chats", groupId), {
+          isGroup: true,
+          name,
+          members: memberUids,
+          createdAt: serverTimestamp(),
+          createdBy: myUid
+        });
+        $("groupModal").classList.add("hidden");
+        document.body.classList.remove("modal-open");
+        window.app.openGroupChat(groupId, name);
+      } catch (e) { notify(e?.message || "Không tạo được nhóm"); }
+    };
+
     $("btnSearch").onclick = async () => {
       const q = $("searchInput").value.trim();
       const results = $("searchResults");

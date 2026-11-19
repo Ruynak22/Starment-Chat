@@ -1,6 +1,6 @@
 import { auth } from "./firebase-config.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
-import { ensureUserProfile, getUserProfile } from "./users.js";
+import { ensureUserProfile, getUserProfile, getBlockedUids } from "./users.js";
 import { setPresence } from "./presence.js";
 import { searchByUid, searchByName, sendFriendRequest, listIncomingRequests, respondRequest, getConnectedUsers, MAX_CONNECTIONS } from "./connections.js";
 import { chatIdFor, sendMessage, listenMessages, markMessagesAsRead, listenMessageStatus, listenChat, getStreak, STREAK_MILESTONES } from "./messages.js";
@@ -149,13 +149,24 @@ async function refreshConnections() {
   }
 
   const users = await getConnectedUsers(currentUser.uid);
+  const blocked = await getBlockedUids(currentUser.uid);
+  const filteredUsers = users.filter((u) => !blocked.includes(u));
   const list = $("connections");
   if (!list) return;
   list.innerHTML = "";
-  if (users.length === 0) {
+  if (filteredUsers.length === 0) {
     list.innerHTML = '<li class="user-empty">Chưa có kết nối. Hãy tìm bạn bè ở trên.</li>';
   }
-  users.forEach((uid) => {
+  const pinnedKey = "pinnedFriends_" + currentUser.uid;
+  let pinned = [];
+  try { pinned = JSON.parse(localStorage.getItem(pinnedKey) || "[]"); } catch {}
+  filteredUsers.sort((a, b) => {
+    const ia = pinned.indexOf(a), ib = pinned.indexOf(b);
+    const pa = ia === -1 ? 9999 : ia;
+    const pb = ib === -1 ? 9999 : ib;
+    return pa - pb;
+  });
+  filteredUsers.forEach((uid) => {
     const li = document.createElement("li");
     li.className = "user-item";
     const av = document.createElement("div");
@@ -644,28 +655,39 @@ async function openChat(otherUid) {
         }
       }
 
-      let hasMedia = false;
-      if (m.attachment) {
-        renderAttachment(bubble, m.attachment);
-        hasMedia = true;
-      } else if (m.imageUrl) {
-        bubble.appendChild(createMessageImage(m.imageUrl, "Ảnh"));
-        hasMedia = true;
+      if (Array.isArray(m.deletedFor) && m.deletedFor.includes(currentUser.uid)) {
+        continue;
       }
 
-      if (m.text) {
-        if (hasMedia) {
-          const caption = document.createElement("div");
-          caption.className = "msg-text";
-          caption.textContent = m.text;
-          bubble.appendChild(caption);
-        } else {
-          bubble.appendChild(document.createTextNode(m.text));
+      let hasMedia = false;
+      if (m.recalled) {
+        const recalledEl = document.createElement("div");
+        recalledEl.className = "msg-recalled";
+        recalledEl.textContent = "🚫 Tin nhắn đã được thu hồi";
+        bubble.appendChild(recalledEl);
+      } else {
+        if (m.attachment) {
+          renderAttachment(bubble, m.attachment);
+          hasMedia = true;
+        } else if (m.imageUrl) {
+          bubble.appendChild(createMessageImage(m.imageUrl, "Ảnh"));
+          hasMedia = true;
+        }
+
+        if (m.text) {
+          if (hasMedia) {
+            const caption = document.createElement("div");
+            caption.className = "msg-text";
+            caption.textContent = m.text;
+            bubble.appendChild(caption);
+          } else {
+            bubble.appendChild(document.createTextNode(m.text));
+          }
         }
       }
 
       // Add status indicator for outgoing messages
-      if (mine) {
+      if (mine && !m.recalled) {
         const statusSpan = document.createElement("span");
         statusSpan.className = "msg-status";
         if ((m.status || "sent") === "seen") statusSpan.classList.add("seen");
@@ -674,20 +696,58 @@ async function openChat(otherUid) {
         bubble.appendChild(statusSpan);
       }
 
-      // Add reply action for incoming messages
+      // Actions
+      const actions = document.createElement("div");
+      actions.className = "msg-actions";
       if (!mine) {
-        const actions = document.createElement("div");
-        actions.className = "msg-actions";
         const replyBtn = document.createElement("button");
         replyBtn.className = "msg-action-btn";
         replyBtn.textContent = "↩️ Trả lời";
-        replyBtn.onclick = (e) => {
-          e.stopPropagation();
-          startReply(m);
-        };
+        replyBtn.onclick = (e) => { e.stopPropagation(); startReply(m); };
         actions.appendChild(replyBtn);
-        bubble.appendChild(actions);
       }
+      if (mine && !m.recalled) {
+        const recallBtn = document.createElement("button");
+        recallBtn.className = "msg-action-btn";
+        recallBtn.textContent = "↩️ Thu hồi";
+        recallBtn.onclick = async (e) => {
+          e.stopPropagation();
+          try {
+            const { recallMessage } = await import("./messages.js");
+            await recallMessage(currentChatId, m.id);
+            notify("Đã thu hồi tin nhắn");
+          } catch (err) { notify(err?.message || "Không thu hồi được"); }
+        };
+        actions.appendChild(recallBtn);
+      }
+      const delBtn = document.createElement("button");
+      delBtn.className = "msg-action-btn";
+      delBtn.textContent = "🗑️ Xóa";
+      delBtn.onclick = async (e) => {
+        e.stopPropagation();
+        try {
+          const { deleteMessageForMe } = await import("./messages.js");
+          await deleteMessageForMe(currentChatId, m.id, currentUser.uid);
+          bubble.remove();
+          notify("Đã xóa tin nhắn");
+        } catch (err) { notify(err?.message || "Không xóa được"); }
+      };
+      actions.appendChild(delBtn);
+
+      const pinBtn = document.createElement("button");
+      pinBtn.className = "msg-action-btn";
+      pinBtn.textContent = "📌 Ghim";
+      pinBtn.onclick = async (e) => {
+        e.stopPropagation();
+        try {
+          const { pinMessage } = await import("./messages.js");
+          await pinMessage(currentChatId, m.id, currentUser.uid);
+          notify("Đã ghim tin nhắn");
+        } catch (err) { notify(err?.message || "Không ghim được"); }
+      };
+      actions.appendChild(pinBtn);
+
+      bubble.appendChild(actions);
 
       box.appendChild(bubble);
       attachLongPress(bubble, mine, m);
@@ -771,6 +831,83 @@ async function openChat(otherUid) {
   updateStreakDisplay();
 }
 
+async function openGroupChat(groupId, groupName) {
+  const sessionId = ++chatSessionId;
+  currentChatId = groupId;
+  currentChatPartnerUid = null;
+  replyingToMsg = null;
+  if (unsubscribeMessages) unsubscribeMessages();
+  if (unsubscribeTyping) unsubscribeTyping();
+  if (unsubscribePresence) { unsubscribePresence(); unsubscribePresence = null; }
+  if (unsubscribeMsgStatus) { unsubscribeMsgStatus(); unsubscribeMsgStatus = null; }
+  if (unsubscribeChat) { unsubscribeChat(); unsubscribeChat = null; }
+
+  const empty = $("chatEmpty");
+  if (empty) empty.classList.add("hidden");
+  const composer = $("composer");
+  if (composer) composer.classList.remove("hidden");
+  const appView = $("appView");
+  if (appView) appView.classList.add("chat-open");
+
+  const nameEl = $("chatName");
+  if (nameEl) nameEl.textContent = groupName || "Nhóm";
+  const statusEl = $("chatStatus");
+  if (statusEl) statusEl.textContent = "Nhóm chat";
+  const chatAvatar = $("chatAvatar");
+  if (chatAvatar) chatAvatar.textContent = "👥";
+
+  window.dispatchEvent(new CustomEvent("chat:opened", { detail: { partnerUid: null, groupId } }));
+
+  const box = $("messages");
+  box.innerHTML = "";
+  renderedMsgIds.clear();
+  stickToBottom = true;
+  unseenWhileAway = 0;
+  updateScrollBottomButton();
+  trackComposerHeight();
+
+  unsubscribeMessages = listenMessages(groupId, async (msgs) => {
+    if (currentChatId !== groupId || sessionId !== chatSessionId) return;
+    const newMsgs = msgs.filter(m => !renderedMsgIds.has(m.id));
+    if (newMsgs.length === 0) return;
+    newMsgs.forEach((m) => renderedMsgIds.add(m.id));
+    const msgById = new Map(msgs.map((m) => [m.id, m]));
+    const uidSet = new Set(newMsgs.map((m) => m.senderUid));
+    const resolvedProfiles = new Map();
+    await Promise.all([...uidSet].map(async (uid) => {
+      resolvedProfiles.set(uid, await getProfileCached(uid));
+    }));
+    if (currentChatId !== groupId) return;
+    for (const m of newMsgs) {
+      if (Array.isArray(m.deletedFor) && m.deletedFor.includes(currentUser.uid)) continue;
+      const mine = m.senderUid === currentUser.uid;
+      const bubble = document.createElement("div");
+      bubble.className = "msg " + (mine ? "outgoing" : "incoming");
+      bubble.classList.add("msg-new");
+      bubble.dataset.msgId = m.id;
+      const sender = document.createElement("span");
+      sender.className = "msg-sender";
+      const sp = resolvedProfiles.get(m.senderUid);
+      sender.textContent = mine ? "Bạn" : (sp?.displayName || m.senderUid.slice(0, 8));
+      bubble.appendChild(sender);
+      if (m.recalled) {
+        const r = document.createElement("div");
+        r.className = "msg-recalled";
+        r.textContent = "🚫 Tin nhắn đã được thu hồi";
+        bubble.appendChild(r);
+      } else {
+        if (m.attachment) renderAttachment(bubble, m.attachment);
+        else if (m.imageUrl) bubble.appendChild(createMessageImage(m.imageUrl, "Ảnh"));
+        if (m.text) bubble.appendChild(document.createTextNode(m.text));
+      }
+      box.appendChild(bubble);
+    }
+    if (stickToBottom) requestAnimationFrame(() => { if (currentChatId === groupId) scrollToBottom("auto"); });
+  });
+
+  const back = $("btnBack");
+  if (back) back.onclick = () => closeChat();
+}
 function closeChat() {
   const closingChatId = currentChatId;
   if (closingChatId && currentUser) {
@@ -901,4 +1038,4 @@ window.addEventListener("requests:changed", () => {
   if (currentUser) refreshConnections();
 });
 
-window.app = { searchByUid, searchByName, sendFriendRequest, listIncomingRequests, respondRequest, sendMessage, uploadChatAttachment, openChat, currentUser: () => currentUser, currentChatId: () => currentChatId, presenceCache, updateStatusDot, cancelReply, startReply, scrollToBottom, openImageViewer, get replyingToMsg() { return replyingToMsg; } };
+window.app = { searchByUid, searchByName, sendFriendRequest, listIncomingRequests, respondRequest, sendMessage, uploadChatAttachment, openChat, openGroupChat, currentUser: () => currentUser, currentChatId: () => currentChatId, currentChatPartnerUid: () => currentChatPartnerUid, presenceCache, updateStatusDot, cancelReply, startReply, scrollToBottom, openImageViewer, get replyingToMsg() { return replyingToMsg; } };

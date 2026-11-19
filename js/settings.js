@@ -14,15 +14,20 @@ const ACCENTS = ["blue", "purple", "green", "orange", "pink"];
 const DEFAULTS = {
   theme: "dark",
   accent: "blue",
+  language: "vi",
   notifInApp: true,
   notifSound: true,
   notifDesktop: false,
   notifPreview: true,
   enterToSend: true,
-  compact: false
+  compact: false,
+  sidebarCollapsed: false,
+  readReceipts: true,
+  typingIndicator: true,
+  animations: true
 };
 
-const BOOL_KEYS = ["notifInApp", "notifSound", "notifDesktop", "notifPreview", "enterToSend", "compact"];
+const BOOL_KEYS = ["notifInApp", "notifSound", "notifDesktop", "notifPreview", "enterToSend", "compact", "sidebarCollapsed", "readReceipts", "typingIndicator", "animations"];
 
 let settings = { ...DEFAULTS };
 let systemQuery = null;
@@ -62,7 +67,10 @@ export function applySettings() {
   const root = document.documentElement;
   root.dataset.theme = resolveTheme();
   root.dataset.accent = settings.accent;
+  root.lang = settings.language || "vi";
   document.body?.classList.toggle("compact", !!settings.compact);
+  document.body?.classList.toggle("sidebar-collapsed", !!settings.sidebarCollapsed);
+  document.body?.classList.toggle("no-animations", !settings.animations);
 }
 
 export function getSettings() {
@@ -135,6 +143,8 @@ function syncControls() {
     const key = input.dataset.setting;
     if (key in settings) input.checked = !!settings[key];
   });
+  const langSel = document.getElementById("settingsLanguage");
+  if (langSel) langSel.value = settings.language || "vi";
 }
 
 /* ---------- Quyền thông báo hệ thống ---------- */
@@ -191,7 +201,9 @@ export function initSettings() {
   document.getElementById("btnSettingsDone")?.addEventListener("click", closeSettings);
   document.querySelector('#settingsModal [data-close="settings"]')?.addEventListener("click", closeSettings);
 
-  document.getElementById("btnSettingsReset")?.addEventListener("click", resetSettings);
+  document.getElementById("btnToggleSidebar")?.addEventListener("click", () => {
+    updateSetting("sidebarCollapsed", !getSettings().sidebarCollapsed);
+  });
   document.getElementById("btnSettingsPassword")?.addEventListener("click", (e) => sendPasswordReset(e.currentTarget));
 
   document.querySelectorAll("[data-theme-option]").forEach((btn) => {
@@ -214,8 +226,8 @@ export function initSettings() {
     });
   });
 
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !settingsModal()?.classList.contains("hidden")) closeSettings();
+  document.getElementById("settingsLanguage")?.addEventListener("change", (e) => {
+    updateSetting("language", e.target.value);
   });
 
   // Chủ đề "Hệ thống" thay đổi theo cài đặt của máy.
