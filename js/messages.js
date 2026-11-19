@@ -9,7 +9,7 @@ export function chatIdFor(a, b) {
 
 export const STREAK_MILESTONES = [3, 10, 30, 100, 200, 500, 1000];
 
-export async function sendMessage(chatId, senderUid, text, imageUrl = null, replyTo = null) {
+export async function sendMessage(chatId, senderUid, text, imageUrl = null, replyTo = null, attachment = null) {
   const chatRef = doc(db, "chats", chatId);
   const chatSnap = await getDoc(chatRef);
   
@@ -41,7 +41,11 @@ export async function sendMessage(chatId, senderUid, text, imageUrl = null, repl
   if (replyTo) {
     msgData.replyTo = replyTo;
   }
-  
+
+  if (attachment) {
+    msgData.attachment = attachment;
+  }
+
   await addDoc(msgRef, msgData);
   
   // Update streak

@@ -139,10 +139,15 @@
       <div id="composer" class="composer hidden">
         <div class="composer-preview">
           <img id="imgPreview" alt="" />
+          <div id="filePreview" class="file-preview hidden">
+            <span id="filePreviewIcon" class="file-preview-icon">📎</span>
+            <span id="filePreviewName" class="file-preview-name"></span>
+            <button type="button" id="btnClearFile" class="file-preview-clear" title="Bỏ tệp đã chọn">✕</button>
+          </div>
         </div>
         <input id="msgInput" class="input msg-input" placeholder="Nhập tin nhắn..." />
-        <input id="imgInput" class="input-img" type="file" accept="image/*" />
-        <button id="btnAttach" class="btn btn-icon" title="Đính kèm ảnh">📎</button>
+        <input id="imgInput" class="input-img" type="file" />
+        <button id="btnAttach" class="btn btn-icon" title="Đính kèm ảnh hoặc tệp">📎</button>
         <button id="btnSend" class="btn btn-primary">Gửi</button>
       </div>
     </main>
@@ -189,7 +194,8 @@
     import { getUserProfile, createUserProfile, updateDisplayName, updateUsername, validateUsername } from "./js/users.js";
     import { searchByUsername } from "./js/connections.js";
     import "./js/app.js";
-    import { previewImage } from "./js/images.js";
+    import { previewImage, clearImagePreview } from "./js/images.js";
+    import { formatFileSize } from "./js/storage.js";
     import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
 
     const $ = (id) => document.getElementById(id);
@@ -202,6 +208,7 @@
       clearTimeout(toastTimer);
       toastTimer = setTimeout(() => toast.classList.remove("show"), 3000);
     }
+    window.notify = notify;
     // Đặt thông báo với kiểu: "success" | "error" | null (trung tính)
     const setStatus = (el, m, type) => {
       el.textContent = m;
@@ -382,6 +389,7 @@
         // (vd: sau khi đăng xuất từ màn quên mật khẩu)
         $("resetPanel").classList.add("hidden");
         $("authPanel").classList.remove("hidden");
+        clearFileSelection();
         myProfile = null;
       }
     });
@@ -546,35 +554,63 @@
     };
     $("searchInput").onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); $("btnSearch").click(); } };
 
-    /* ---------- Đính kèm ảnh ---------- */
+    /* ---------- Đính kèm ảnh / tệp ---------- */
+    function clearFileSelection() {
+      $("imgInput").value = "";
+      clearImagePreview($("imgPreview"));
+      $("filePreview").classList.add("hidden");
+      $("filePreviewName").textContent = "";
+    }
+
     $("btnAttach").onclick = () => $("imgInput").click();
+    $("btnClearFile").onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      clearFileSelection();
+    };
     $("imgInput").onchange = () => {
       const f = $("imgInput").files[0];
-      if (f) {
+      if (!f) { clearFileSelection(); return; }
+      if (f.type.startsWith("image/")) {
+        $("filePreview").classList.add("hidden");
         previewImage(f, $("imgPreview"));
         $("imgPreview").classList.add("show");
+      } else {
+        clearImagePreview($("imgPreview"));
+        $("filePreviewIcon").textContent = "📎";
+        $("filePreviewName").textContent = `${f.name} · ${formatFileSize(f.size)}`;
+        $("filePreview").classList.remove("hidden");
       }
     };
 
     /* ---------- Gửi tin nhắn ---------- */
     $("btnSend").onclick = async () => {
       const chatId = window.app.currentChatId();
-      if (!chatId) return;
+      const uid = window.app.currentUser()?.uid;
+      if (!chatId || !uid) return;
       const f = $("imgInput").files[0];
+      const text = $("msgInput").value.trim();
+      if (!f && !text) return;
       const replyTo = window.app.replyingToMsg?.id || null;
-      if (f) {
-        const url = await window.app.uploadChatImage(chatId, f);
-        await window.app.sendMessage(chatId, window.app.currentUser().uid, null, url, replyTo);
-        $("imgInput").value = "";
-        $("imgPreview").src = "";
-        $("imgPreview").classList.remove("show");
-      } else {
-        const text = $("msgInput").value.trim();
-        if (!text) return;
-        await window.app.sendMessage(chatId, window.app.currentUser().uid, text, null, replyTo);
+
+      const btn = $("btnSend");
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = "Đang gửi…";
+      try {
+        let attachment = null;
+        if (f) attachment = await window.app.uploadChatAttachment(chatId, f);
+        const imageUrl = attachment && attachment.kind === "image" && attachment.url ? attachment.url : null;
+        await window.app.sendMessage(chatId, uid, text || null, imageUrl, replyTo, attachment);
         $("msgInput").value = "";
+        clearFileSelection();
+        window.app.cancelReply();
+      } catch (err) {
+        notify(err?.message || "Không gửi được tệp. Vui lòng thử lại.");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
       }
-      window.app.cancelReply();
     };
 
     $("msgInput").onkeydown = (e) => {

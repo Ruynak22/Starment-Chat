@@ -1,6 +1,16 @@
 {
   "rules": {
     "presence": { "$uid": { ".read": "auth != null", ".write": "auth != null && auth.uid == $uid" } },
-    "typing": { "$chatId": { "$uid": { ".read": "auth != null", ".write": "auth != null && auth.uid == $uid" } } }
+    "typing": { "$chatId": { "$uid": { ".read": "auth != null", ".write": "auth != null && auth.uid == $uid" } } },
+    "media": {
+      "$chatId": {
+        "$mediaId": {
+          ".read": "auth != null",
+          ".write": "auth != null",
+          "data": { ".validate": "newData.isString() && newData.val().length <= 7000000" },
+          "size": { ".validate": "newData.isNumber() && newData.val() <= 5242880" }
+        }
+      }
+    }
   }
 }

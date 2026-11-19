@@ -4,7 +4,7 @@ import { ensureUserProfile, getUserProfile } from "./users.js";
 import { setPresence } from "./presence.js";
 import { searchByUid, searchByName, sendFriendRequest, listIncomingRequests, respondRequest, getConnectedUsers, MAX_CONNECTIONS } from "./connections.js";
 import { chatIdFor, sendMessage, listenMessages, markMessagesAsRead, listenMessageStatus, listenChat, getStreak, STREAK_MILESTONES } from "./messages.js";
-import { uploadChatImage } from "./storage.js";
+import { uploadChatAttachment, getAttachmentUrl, downloadAttachment, formatFileSize } from "./storage.js";
 import { setTyping } from "./presence.js";
 import { listenTyping } from "./typing.js";
 import { listenPresence } from "./presence.js";
@@ -246,6 +246,87 @@ function attachLongPress(el, mine, msg) {
   }, { once: true });
 }
 
+function fileIconFor(mime, name) {
+  const m = (mime || "").toLowerCase();
+  const n = (name || "").toLowerCase();
+  if (m.startsWith("image/")) return "🖼️";
+  if (m.startsWith("video/")) return "🎬";
+  if (m.startsWith("audio/")) return "🎵";
+  if (m.includes("pdf") || n.endsWith(".pdf")) return "📕";
+  if (m.includes("zip") || m.includes("rar") || m.includes("7z") || n.endsWith(".zip") || n.endsWith(".rar")) return "🗜️";
+  if (m.includes("sheet") || m.includes("excel") || n.endsWith(".xlsx") || n.endsWith(".csv")) return "📊";
+  if (m.includes("presentation") || m.includes("powerpoint") || n.endsWith(".pptx")) return "📽️";
+  if (m.startsWith("text/") || m.includes("word") || n.endsWith(".doc") || n.endsWith(".docx")) return "📄";
+  return "📎";
+}
+
+function attachmentPreviewText(msg) {
+  if (!msg) return "";
+  if (msg.imageUrl) return "📷 Ảnh";
+  if (msg.attachment) {
+    return msg.attachment.kind === "image"
+      ? "📷 Ảnh"
+      : "📎 " + (msg.attachment.name || "Tệp");
+  }
+  return msg.text || "";
+}
+
+function createFileCard(attachment) {
+  const card = document.createElement("button");
+  card.type = "button";
+  card.className = "msg-file";
+
+  const icon = document.createElement("span");
+  icon.className = "msg-file-icon";
+  icon.textContent = fileIconFor(attachment.mime, attachment.name);
+
+  const meta = document.createElement("span");
+  meta.className = "msg-file-meta";
+  const name = document.createElement("span");
+  name.className = "msg-file-name";
+  name.textContent = attachment.name || "Tệp";
+  const size = document.createElement("span");
+  size.className = "msg-file-size";
+  size.textContent = attachment.size ? formatFileSize(attachment.size) : "Tải xuống";
+  meta.append(name, size);
+
+  const dl = document.createElement("span");
+  dl.className = "msg-file-dl";
+  dl.textContent = "⬇";
+
+  card.append(icon, meta, dl);
+  card.onclick = async (e) => {
+    e.stopPropagation();
+    try {
+      await downloadAttachment(attachment);
+    } catch (err) {
+      window.notify?.(err?.message || "Không tải được tệp.");
+    }
+  };
+  return card;
+}
+
+function renderAttachment(bubble, attachment) {
+  if (!attachment) return;
+  if (attachment.kind === "image") {
+    const img = document.createElement("img");
+    img.className = "msg-img loading";
+    img.alt = attachment.name || "Ảnh";
+    bubble.appendChild(img);
+    getAttachmentUrl(attachment).then((url) => {
+      img.src = url;
+      img.onload = () => {
+        img.classList.remove("loading");
+        if (wasAtBottom) scrollToBottom();
+      };
+    }).catch(() => {
+      img.replaceWith(createFileCard(attachment));
+    });
+  } else {
+    bubble.appendChild(createFileCard(attachment));
+  }
+}
+
 function updateChatHeaderStatus(presence) {
   const statusEl = $("chatStatus");
   if (!statusEl) return;
@@ -343,10 +424,13 @@ async function openChat(otherUid) {
         if (repliedMsg) {
           const repliedProfile = await getUserProfile(repliedMsg.senderUid);
           const repliedName = repliedMsg.senderUid === currentUser.uid ? "Bạn" : (repliedProfile?.displayName || "Người dùng");
-          replyPreview.innerHTML = `
-            <span class="reply-name">${repliedName}</span>
-            <span class="reply-text">${repliedMsg.imageUrl ? "📷 Ảnh" : (repliedMsg.text || "")}</span>
-          `;
+          const replyName = document.createElement("span");
+          replyName.className = "reply-name";
+          replyName.textContent = repliedName;
+          const replyText = document.createElement("span");
+          replyText.className = "reply-text";
+          replyText.textContent = attachmentPreviewText(repliedMsg);
+          replyPreview.append(replyName, replyText);
           bubble.appendChild(replyPreview);
           
           // Click to scroll to replied message
@@ -357,14 +441,28 @@ async function openChat(otherUid) {
         }
       }
 
+      let hasMedia = false;
       if (m.imageUrl) {
         const img = document.createElement("img");
         img.src = m.imageUrl;
         // Khi ảnh tải xong (chiều cao thay đổi) → vẫn bám đáy nếu đang ở đáy
         img.onload = () => { if (wasAtBottom) scrollToBottom(); };
         bubble.appendChild(img);
-      } else if (m.text) {
-        bubble.appendChild(document.createTextNode(m.text));
+        hasMedia = true;
+      } else if (m.attachment) {
+        renderAttachment(bubble, m.attachment);
+        hasMedia = true;
+      }
+
+      if (m.text) {
+        if (hasMedia) {
+          const caption = document.createElement("div");
+          caption.className = "msg-text";
+          caption.textContent = m.text;
+          bubble.appendChild(caption);
+        } else {
+          bubble.appendChild(document.createTextNode(m.text));
+        }
       }
       
       // Add status indicator for outgoing messages
@@ -496,15 +594,20 @@ function showReplyBar(msg) {
     const composer = $("composer");
     composer.parentNode.insertBefore(replyBar, composer);
   }
-  const repliedProfile = msg.senderUid === currentUser.uid ? { displayName: "Bạn" } : null;
   getUserProfile(msg.senderUid).then(p => {
     const name = msg.senderUid === currentUser.uid ? "Bạn" : (p?.displayName || "Người dùng");
-    const text = msg.imageUrl ? "📷 Ảnh" : (msg.text || "");
-    replyBar.innerHTML = `
-      <span class="reply-bar-label">Trả lời cho ${name}</span>
-      <span class="reply-bar-text">${text}</span>
-      <button class="reply-bar-close" onclick="window.app.cancelReply()">✕</button>
-    `;
+    const label = document.createElement("span");
+    label.className = "reply-bar-label";
+    label.textContent = `Trả lời cho ${name}`;
+    const textEl = document.createElement("span");
+    textEl.className = "reply-bar-text";
+    textEl.textContent = attachmentPreviewText(msg);
+    const close = document.createElement("button");
+    close.className = "reply-bar-close";
+    close.type = "button";
+    close.textContent = "✕";
+    close.onclick = () => window.app.cancelReply();
+    replyBar.replaceChildren(label, textEl, close);
     replyBar.classList.add("show");
   });
 }
@@ -552,4 +655,4 @@ function getStatusText(status) {
   }
 }
 
-window.app = { searchByUid, searchByName, sendFriendRequest, listIncomingRequests, respondRequest, sendMessage, uploadChatImage, currentUser: () => currentUser, currentChatId: () => currentChatId, presenceCache, updateStatusDot, cancelReply, startReply, get replyingToMsg() { return replyingToMsg; } };
+window.app = { searchByUid, searchByName, sendFriendRequest, listIncomingRequests, respondRequest, sendMessage, uploadChatAttachment, currentUser: () => currentUser, currentChatId: () => currentChatId, presenceCache, updateStatusDot, cancelReply, startReply, get replyingToMsg() { return replyingToMsg; } };
