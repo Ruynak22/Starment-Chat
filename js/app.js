@@ -1039,18 +1039,37 @@ window.addEventListener("requests:changed", () => {
   if (currentUser) refreshConnections();
 });
 
-// Sidebar toggle
+// Sidebar toggle + expand/close
+const sidebar = document.querySelector(".sidebar");
 $("btnSidebarToggle")?.addEventListener("click", () => {
-  const sidebar = document.querySelector(".sidebar");
-  const isHidden = sidebar.classList.toggle("hidden");
-  localStorage.setItem("starment_sidebar_hidden", isHidden ? "1" : "0");
+  const collapsed = sidebar.classList.toggle("collapsed");
+  localStorage.setItem("starment_sidebar_hidden", collapsed ? "1" : "0");
+  const t = $("btnSidebarToggle");
+  if (t) t.textContent = collapsed ? "→" : "←";
+  const ex = $("btnSidebarExpand");
+  if (ex) { ex.classList.toggle("hidden", !collapsed); }
 });
+
+document.addEventListener("click", (e) => {
+  if (!sidebar.contains(e.target)) {
+    sidebar.classList.remove("collapsed");
+    localStorage.setItem("starment_sidebar_hidden", "0");
+    $("btnSidebarToggle").textContent = "←";
+    $("btnSidebarExpand").classList.add("hidden");
+  }
+}, { capture: true });
 
 // Restore sidebar state
 (function () {
   const hidden = localStorage.getItem("starment_sidebar_hidden") === "1";
   const sidebar = document.querySelector(".sidebar");
-  if (sidebar && hidden) sidebar.classList.add("hidden");
+  if (sidebar && hidden) {
+    sidebar.classList.add("collapsed");
+    const t = $("btnSidebarToggle");
+    if (t) t.textContent = "→";
+    const ex = $("btnSidebarExpand");
+    if (ex) ex.classList.remove("hidden");
+  }
 })();
 
 // Context menu for connections

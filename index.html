@@ -26,6 +26,12 @@
 
   <!-- ===================== MÀN HÌNH ĐĂNG NHẬP ===================== -->
   <div id="authView" class="view auth-view">
+    <div class="auth-bg" aria-hidden="true">
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+      <div class="orb orb-3"></div>
+      <div class="stars" id="stars"></div>
+    </div>
     <div class="auth-card">
       <div class="auth-brand">
         <span class="auth-logo">✦</span>
@@ -98,6 +104,7 @@
 
   <!-- ===================== ỨNG DỤNG CHÍNH ===================== -->
   <div id="appView" class="view app-view hidden">
+    <button type="button" id="btnSidebarExpand" class="sidebar-expand hidden" title="Mở thanh bên" aria-label="Mở thanh bên"><span>☰</span></button>
     <!-- Sidebar -->
     <aside class="sidebar">
       <header class="sidebar-header">
@@ -146,8 +153,7 @@
     <!-- Khu vực chat -->
     <main class="chat">
       <header class="chat-header">
-        <button id="btnBack" class="btn btn-icon chat-back" title="Quay lại">←</button>
-        <div id="chatAvatar" class="avatar">?</div>
+        <button id="btnBack" class="btn btn-icon chat-back" title="Quay lại">←</button>        <div id="chatAvatar" class="avatar">?</div>
         <div class="chat-header-info">
           <strong id="chatName">Chọn một cuộc trò chuyện</strong>
           <span id="chatStatus" class="chat-status"></span>
@@ -447,6 +453,36 @@
 
     initSettings();
     initNotifications();
+
+    // ---------- Nền sao động màn đăng nhập ----------
+    const starsBox = document.getElementById("stars");
+    if (starsBox) {
+      for (let i = 0; i < 70; i++) {
+        const s = document.createElement("span");
+        const sz = Math.random() < 0.15 ? 2 : 1;
+        s.style.width = s.style.height = sz + "px";
+        s.style.left = Math.random() * 100 + "%";
+        s.style.top = Math.random() * 100 + "%";
+        s.style.animationDelay = (Math.random() * 4) + "s";
+        s.style.animationDuration = (2 + Math.random() * 3) + "s";
+        starsBox.appendChild(s);
+      }
+    }
+
+    // ---------- Hiệu ứng ripple khi bấm nút ----------
+    document.addEventListener("click", (e) => {
+      const btn = e.target.closest(".btn");
+      if (!btn || btn.disabled) return;
+      const rect = btn.getBoundingClientRect();
+      const size = Math.max(rect.width, rect.height);
+      const r = document.createElement("span");
+      r.className = "ripple";
+      r.style.width = r.style.height = size + "px";
+      r.style.left = (e.clientX - rect.left - size / 2) + "px";
+      r.style.top = (e.clientY - rect.top - size / 2) + "px";
+      btn.appendChild(r);
+      setTimeout(() => r.remove(), 600);
+    }, { capture: true });
 
     const $ = (id) => document.getElementById(id);
     const toast = $("toast");
