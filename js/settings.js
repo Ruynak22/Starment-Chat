@@ -1,11 +1,6 @@
 import { auth } from "./firebase-config.js";
 import { resetPassword, friendlyError } from "./auth.js";
 
-/* ============================================================
-   CÀI ĐẶT NGƯỜI DÙNG
-   - Lưu trong localStorage (dùng chung cho mọi tài khoản trên máy).
-   - Gồm: chủ đề, màu nhấn, giao diện gọn, thông báo, cách gửi tin.
-   ============================================================ */
 
 const STORAGE_KEY = "starment_settings";
 const THEMES = ["dark", "light", "system"];
