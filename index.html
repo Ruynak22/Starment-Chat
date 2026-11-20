@@ -1063,10 +1063,13 @@
     });
 
     /* ---------- Tìm kiếm người dùng ---------- */
+    let searchPresenceUnsubs = [];
     $("btnSearch")?.addEventListener("click", async () => {
       const q = ($("searchInput")?.value || "").trim();
       const results = $("searchResults");
       if (!results) return;
+      searchPresenceUnsubs.forEach((unsub) => unsub());
+      searchPresenceUnsubs = [];
       results.innerHTML = "";
       if (!q) return;
 
@@ -1112,10 +1115,10 @@
         statusDot.className = "status-dot";
         statusDot.dataset.uid = u.uid;
         av.appendChild(statusDot);
-        if (window.app && window.app.presenceCache) {
-          window.app.updateStatusDot(statusDot, window.app.presenceCache.get(u.uid) || { online: false });
+        if (window.app?.updateStatusDot) {
+          window.app.updateStatusDot(statusDot, window.app.presenceCache?.get(u.uid) || { online: false });
         } else {
-          window.app.updateStatusDot(statusDot, { online: false });
+          statusDot.classList.add("offline");
         }
 
         const info = document.createElement("div");
@@ -1139,13 +1142,16 @@
         results.appendChild(li);
 
         import("./js/presence.js").then(({ listenPresence }) => {
-          listenPresence(u.uid, (presence) => {
-            if (window.app && window.app.presenceCache) {
+          const unsub = listenPresence(u.uid, (presence) => {
+            if (window.app?.presenceCache) {
               window.app.presenceCache.set(u.uid, presence || { online: false });
             }
             const dot = document.querySelector(`#searchResults .status-dot[data-uid="${u.uid}"]`);
-            if (dot) window.app.updateStatusDot(dot, presence || { online: false });
+            if (dot && window.app?.updateStatusDot) {
+              window.app.updateStatusDot(dot, presence || { online: false });
+            }
           });
+          searchPresenceUnsubs.push(unsub);
         });
       });
     });

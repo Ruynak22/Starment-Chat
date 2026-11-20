@@ -1,7 +1,7 @@
 import { auth } from "./firebase-config.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
 import { ensureUserProfile, getUserProfile, blockUser, unblockUser, isBlocked, getBlockedUids } from "./users.js";
-import { setPresence } from "./presence.js";
+import { setPresence, setOffline, formatLastSeen } from "./presence.js";
 import { searchByUid, searchByName, sendFriendRequest, listIncomingRequests, respondRequest, getConnectedUsers, MAX_CONNECTIONS, removeConnection } from "./connections.js";
 import { chatIdFor, sendMessage, listenMessages, markMessagesAsRead, listenMessageStatus, listenChat, getStreak, STREAK_MILESTONES, deleteMessage, retractMessage, pinMessage, unpinMessage, getPinnedMessages, pinChat, unpinChat, isChatPinned, createGroupChat, updateGroupChat, addMemberToGroup, removeMemberFromGroup } from "./messages.js";
 import { uploadChatAttachment, getAttachmentUrl, downloadAttachment, formatFileSize } from "./storage.js";
@@ -36,6 +36,8 @@ let composerRO = null;
 let smoothScrollLockUntil = 0;
 let chatSessionId = 0;
 let typingStaleTimer = null;
+let currentPartnerLabel = "";
+let presenceUid = null;
 
 function getPinnedList(uid) {
   if (!uid) return [];
@@ -78,11 +80,19 @@ function getProfileCached(uid) {
   return promise;
 }
 
+function setMyStatus(online) {
+  document.body.classList.toggle("is-online", !!online);
+  document.body.classList.toggle("is-offline", !online);
+}
+
 onAuthStateChanged(auth, async (u) => {
+  const previousUid = presenceUid;
   currentUser = u;
   if (u) {
+    presenceUid = u.uid;
     await ensureUserProfile(u);
     setPresence(u.uid);
+    setMyStatus(true);
     await refreshConnections();
     
     // Restore last opened chat
@@ -97,6 +107,10 @@ onAuthStateChanged(auth, async (u) => {
       }
     }
   } else {
+    // Đánh dấu offline ngay khi đăng xuất thay vì đợi onDisconnect.
+    if (previousUid) setOffline(previousUid);
+    presenceUid = null;
+    setMyStatus(false);
     // Clean up all presence listeners
     presenceUnsubscribes.forEach(unsub => unsub());
     presenceUnsubscribes.clear();
@@ -106,6 +120,18 @@ onAuthStateChanged(auth, async (u) => {
     if (box) box.innerHTML = "";
     const reqBox = $("requests");
     if (reqBox) reqBox.innerHTML = "";
+  }
+});
+
+// Trạng thái luôn đúng ngay cả khi đóng tab hoặc quay lại từ bfcache.
+window.addEventListener("pagehide", () => {
+  if (presenceUid) setOffline(presenceUid);
+  setMyStatus(false);
+});
+window.addEventListener("pageshow", () => {
+  if (presenceUid && currentUser) {
+    setPresence(presenceUid);
+    setMyStatus(true);
   }
 });
 
@@ -142,18 +168,18 @@ async function refreshConnections() {
       av.appendChild(statusDot);
       updateStatusDot(statusDot, presenceCache.get(r.fromUid) || { online: false });
       
+      const uidEl = document.createElement("span");
+      uidEl.className = "user-username";
+      uidEl.textContent = r.fromUid.slice(0, 8) + "…";
       getUserProfile(r.fromUid).then((p) => {
         nm.textContent = p?.displayName || r.fromUid.slice(0, 8);
         av.textContent = (p?.displayName || "?").charAt(0).toUpperCase();
-        uid.textContent = p?.username ? "@" + p.username : r.fromUid.slice(0, 8) + "…";
+        uidEl.textContent = p?.username ? "@" + p.username : r.fromUid.slice(0, 8) + "…";
         // Re-attach status dot
         av.appendChild(statusDot);
         updateStatusDot(statusDot, presenceCache.get(r.fromUid) || { online: false });
       });
-      const uid = document.createElement("span");
-      uid.className = "user-username";
-      uid.textContent = r.fromUid.slice(0, 8) + "…";
-      info.append(nm, uid);
+      info.append(nm, uidEl);
 
       const acc = document.createElement("button");
       acc.className = "btn btn-primary btn-sm";
@@ -257,22 +283,17 @@ async function refreshConnections() {
   window.dispatchEvent(new CustomEvent("connections:changed"));
 }
 
+function lastSeenText(presence) {
+  const text = formatLastSeen(presence?.lastSeen);
+  return text ? `Xem lần cuối ${text}` : "Ngoại tuyến";
+}
+
 function updateStatusDot(dot, presence) {
-  if (presence?.online) {
-    dot.classList.add("online");
-    dot.classList.remove("offline");
-    dot.title = "Trực tuyến";
-  } else {
-    dot.classList.add("offline");
-    dot.classList.remove("online");
-    const lastSeen = presence?.lastSeen;
-    if (lastSeen) {
-      const date = new Date(lastSeen);
-      dot.title = `Lần cuối: ${date.toLocaleTimeString("vi-VN")} ${date.toLocaleDateString("vi-VN")}`;
-    } else {
-      dot.title = "Ngo tuyến";
-    }
-  }
+  if (!dot) return;
+  const online = !!presence?.online;
+  dot.classList.toggle("online", online);
+  dot.classList.toggle("offline", !online);
+  dot.title = online ? "Trực tuyến" : lastSeenText(presence);
 }
 
 function isNearBottom(box) {
@@ -536,21 +557,16 @@ function renderAttachment(bubble, attachment) {
 function updateChatHeaderStatus(presence) {
   const statusEl = $("chatStatus");
   if (!statusEl) return;
-  const usernamePart = statusEl.textContent.startsWith("@") ? statusEl.textContent.split(" • ")[0] : "";
-  if (presence?.online) {
-    statusEl.textContent = usernamePart ? `${usernamePart} • Trực tuyến` : "Trực tuyến";
-    statusEl.classList.add("online");
-    statusEl.classList.remove("offline");
-  } else {
-    const lastSeen = presence?.lastSeen;
-    if (lastSeen) {
-      const date = new Date(lastSeen);
-      statusEl.textContent = usernamePart ? `${usernamePart} • Xem lần cuối ${date.toLocaleTimeString("vi-VN")}` : `Xem lần cuối ${date.toLocaleTimeString("vi-VN")}`;
-    } else {
-      statusEl.textContent = usernamePart ? `${usernamePart} • Ngo tuyến` : "Ngo tuyến";
-    }
-    statusEl.classList.add("offline");
-    statusEl.classList.remove("online");
+  const avatar = $("chatAvatar");
+  const online = !!presence?.online;
+  const detail = online ? "Trực tuyến" : lastSeenText(presence);
+  statusEl.textContent = currentPartnerLabel ? `${currentPartnerLabel} • ${detail}` : detail;
+  statusEl.classList.toggle("online", online);
+  statusEl.classList.toggle("offline", !online);
+  if (avatar) {
+    avatar.classList.toggle("has-presence", !!currentChatPartnerUid);
+    avatar.classList.toggle("online", online && !!currentChatPartnerUid);
+    avatar.classList.toggle("offline", !online && !!currentChatPartnerUid);
   }
 }
 
@@ -636,10 +652,10 @@ async function openChat(otherUid) {
   window.app?.clearAttachment?.();
   const nameEl = $("chatName");
   if (nameEl) nameEl.textContent = profile?.displayName || otherUid.slice(0, 8) + "…";
-  const statusEl = $("chatStatus");
-  if (statusEl) statusEl.textContent = profile?.username ? "@" + profile.username : "";
+  currentPartnerLabel = profile?.username ? "@" + profile.username : "";
   const chatAvatar = $("chatAvatar");
   if (chatAvatar) chatAvatar.textContent = (profile?.displayName || "?").charAt(0).toUpperCase();
+  updateChatHeaderStatus(presenceCache.get(otherUid) || { online: false });
 
   // Cập nhật nút pin/block
   updatePinButton();
@@ -1012,6 +1028,7 @@ async function openGroupChat(groupId, groupName) {
   const sessionId = ++chatSessionId;
   currentChatId = groupId;
   currentChatPartnerUid = null;
+  currentPartnerLabel = "";
   replyingToMsg = null;
   if (unsubscribeMessages) unsubscribeMessages();
   if (unsubscribeTyping) unsubscribeTyping();
@@ -1029,9 +1046,15 @@ async function openGroupChat(groupId, groupName) {
   const nameEl = $("chatName");
   if (nameEl) nameEl.textContent = groupName || "Nhóm";
   const statusEl = $("chatStatus");
-  if (statusEl) statusEl.textContent = "Nhóm chat";
+  if (statusEl) {
+    statusEl.textContent = "Nhóm chat";
+    statusEl.classList.remove("online", "offline");
+  }
   const chatAvatar = $("chatAvatar");
-  if (chatAvatar) chatAvatar.textContent = "👥";
+  if (chatAvatar) {
+    chatAvatar.textContent = "👥";
+    chatAvatar.classList.remove("has-presence", "online", "offline");
+  }
 
   window.dispatchEvent(new CustomEvent("chat:opened", { detail: { partnerUid: null, groupId } }));
 
@@ -1125,13 +1148,17 @@ function closeChat() {
   if (composer) composer.classList.add("hidden");
   const nameEl = $("chatName");
   if (nameEl) nameEl.textContent = "Chọn một cuộc trò chuyện";
+  currentPartnerLabel = "";
   const statusEl = $("chatStatus");
   if (statusEl) {
     statusEl.textContent = "";
     statusEl.classList.remove("online", "offline");
   }
   const avatarEl = $("chatAvatar");
-  if (avatarEl) avatarEl.textContent = "?";
+  if (avatarEl) {
+    avatarEl.textContent = "?";
+    avatarEl.classList.remove("has-presence", "online", "offline");
+  }
   const streakEl = $("chatStreak");
   if (streakEl) streakEl.innerHTML = "";
   document.querySelectorAll("#connections .user-item.active").forEach((li) => li.classList.remove("active"));
