@@ -1,8 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="color-scheme" content="dark light" />
+  <meta name="theme-color" content="#090c12" />
   <title>StarmentChat</title>
   <script>
     // Áp dụng chủ đề/màu nhấn đã lưu trước khi vẽ trang (tránh nháy màu).
@@ -22,82 +24,147 @@
 </head>
 <body>
   <!-- Toast thông báo -->
-  <div id="toast" class="toast"></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <!-- ===================== MÀN HÌNH ĐĂNG NHẬP ===================== -->
   <div id="authView" class="view auth-view">
-    <div class="auth-card">
-      <div class="auth-brand">
-        <span class="auth-logo">✦</span>
-        <h1>StarmentChat</h1>
-        <p class="auth-subtitle">Kết nối & trò chuyện tức thời</p>
-      </div>
+    <div class="auth-bg" aria-hidden="true">
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+      <div class="orb orb-3"></div>
+      <div class="stars" id="stars"></div>
+    </div>
 
-      <div id="authPanel" class="auth-panel">
-        <div class="auth-tabs">
-          <button class="auth-tab active" data-tab="login">Đăng nhập</button>
-          <button class="auth-tab" data-tab="register">Đăng ký</button>
+    <div class="auth-shell">
+      <aside class="auth-hero">
+        <div>
+          <div class="hero-brand">
+            <span class="auth-logo">✦</span>
+            <div>
+              <h2>StarmentChat</h2>
+              <span class="hero-tag">Nhắn tin tức thời</span>
+            </div>
+          </div>
         </div>
 
-        <form id="authForm" class="auth-form" autocomplete="off" novalidate>
-          <label class="field field-register hidden" id="displayNameField">
-            <span>Tên hiển thị</span>
-            <input id="displayName" type="text" placeholder="Nguyễn Văn A" />
-          </label>
+        <div>
+          <h1 class="auth-hero-title">Trò chuyện <em>mượt mà</em><br />trong một không gian tinh tế.</h1>
+          <p class="auth-hero-desc">
+            Kết nối bạn bè, nhắn tin theo thời gian thực và chia sẻ tệp — tất cả
+            trong một giao diện nhẹ nhàng, trong suốt và dễ chịu.
+          </p>
+          <ul class="auth-points">
+            <li><span class="dot-mark">01</span><span>Tin nhắn realtime, trạng thái đã gửi &amp; đã xem</span></li>
+            <li><span class="dot-mark">02</span><span>Gửi ảnh, tài liệu và tệp lớn</span></li>
+            <li><span class="dot-mark">03</span><span>Đồng bộ trên mọi thiết bị của bạn</span></li>
+          </ul>
+        </div>
 
-          <label class="field field-register hidden" id="usernameField">
-            <span>Username</span>
-            <input id="username" type="text" placeholder="@nguyenvana" autocomplete="off" spellcheck="false" />
-            <small class="field-hint">3–20 ký tự: chữ, số, dấu _. Không dấu cách.</small>
-          </label>
+        <p class="auth-hero-foot">© 2026 StarmentChat</p>
+      </aside>
 
-          <label class="field">
-            <span>Email</span>
-            <input id="email" type="email" placeholder="ban@example.com" />
-          </label>
+      <div class="auth-card">
+        <div class="auth-brand">
+          <span class="auth-logo">✦</span>
+          <h1>StarmentChat</h1>
+          <p>Kết nối &amp; trò chuyện tức thời</p>
+        </div>
 
-          <label class="field">
-            <span>Mật khẩu</span>
-            <input id="password" type="password" placeholder="••••••••" />
-          </label>
-
-          <div class="auth-actions">
-            <button type="submit" id="btnLogin" class="btn btn-primary">Đăng nhập</button>
-            <button type="submit" id="btnRegister" class="btn btn-primary hidden">Đăng ký</button>
+        <div id="authPanel" class="auth-panel">
+          <div class="auth-tabs" role="tablist" aria-label="Đăng nhập hoặc đăng ký">
+            <button type="button" class="auth-tab active" data-tab="login" role="tab" aria-selected="true">Đăng nhập</button>
+            <button type="button" class="auth-tab" data-tab="register" role="tab" aria-selected="false">Đăng ký</button>
           </div>
 
-          <button type="button" id="btnReset" class="btn btn-link">Quên mật khẩu?</button>
-          <p id="status" class="status-text"></p>
-        </form>
-      </div>
+          <!-- Đăng nhập -->
+          <form id="loginForm" class="auth-form" autocomplete="on" novalidate>
+            <label class="field">
+              <span>Email</span>
+              <input id="email" name="email" type="email" inputmode="email" placeholder="ban@example.com"
+                     autocomplete="username" spellcheck="false" autocapitalize="none" />
+            </label>
 
-      <!-- ===================== GIAO DIỆN QUÊN MẬT KHẨU ===================== -->
-      <div id="resetPanel" class="reset-panel hidden">
-        <button type="button" id="btnResetBack" class="btn btn-link reset-back">← Quay lại đăng nhập</button>
+            <label class="field">
+              <span>Mật khẩu</span>
+              <input id="password" name="password" type="password" placeholder="••••••••"
+                     autocomplete="current-password" />
+            </label>
 
-        <h2 class="reset-title">Quên mật khẩu</h2>
-        <p class="reset-desc">
-          Nhập địa chỉ email của bạn. Chúng tôi sẽ gửi một liên kết để đặt lại mật khẩu.
-        </p>
+            <div class="auth-actions">
+              <button type="submit" id="btnLogin" class="btn btn-primary btn-block">Đăng nhập</button>
+            </div>
 
-        <form id="resetForm" class="auth-form" autocomplete="off" novalidate>
-          <label class="field">
-            <span>Email</span>
-            <input id="resetEmail" type="email" placeholder="ban@example.com" />
-          </label>
+            <button type="button" id="btnReset" class="btn btn-link">Quên mật khẩu?</button>
+            <p id="status" class="status-text" role="status" aria-live="polite"></p>
+          </form>
 
-          <div class="auth-actions">
-            <button type="submit" id="btnResetSend" class="btn btn-primary">Gửi liên kết đặt lại</button>
-          </div>
+          <!-- Đăng ký: đúng 4 trường -->
+          <form id="registerForm" class="auth-form hidden" autocomplete="on" novalidate>
+            <label class="field">
+              <span>Username</span>
+              <input id="username" name="username" type="text" placeholder="nguyenvana"
+                     autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="20" />
+            </label>
 
-          <p id="resetStatus" class="status-text"></p>
-        </form>
+            <label class="field">
+              <span>Tên hiển thị</span>
+              <input id="displayName" name="name" type="text" placeholder="Nguyễn Văn A"
+                     autocomplete="name" maxlength="40" />
+            </label>
+
+            <label class="field">
+              <span>Email</span>
+              <input id="regEmail" name="email" type="email" inputmode="email" placeholder="ban@example.com"
+                     autocomplete="email" spellcheck="false" autocapitalize="none" />
+            </label>
+
+            <label class="field">
+              <span>Mật khẩu</span>
+              <input id="regPassword" name="new-password" type="password" placeholder="Ít nhất 6 ký tự"
+                     autocomplete="new-password" />
+            </label>
+
+            <div class="auth-actions">
+              <button type="submit" id="btnRegister" class="btn btn-primary btn-block">Đăng ký</button>
+            </div>
+
+            <p id="registerStatus" class="status-text" role="status" aria-live="polite"></p>
+          </form>
+        </div>
+
+        <!-- ===================== QUÊN MẬT KHẨU ===================== -->
+        <div id="resetPanel" class="reset-panel hidden">
+          <button type="button" id="btnResetBack" class="btn btn-link reset-back">← Quay lại đăng nhập</button>
+
+          <h2 class="reset-title">Quên mật khẩu</h2>
+          <p class="reset-desc">
+            Nhập địa chỉ email của bạn. Chúng tôi sẽ gửi một liên kết để đặt lại mật khẩu.
+          </p>
+
+          <form id="resetForm" class="auth-form" autocomplete="on" novalidate>
+            <label class="field">
+              <span>Email</span>
+              <input id="resetEmail" name="email" type="email" inputmode="email" placeholder="ban@example.com"
+                     autocomplete="email" spellcheck="false" autocapitalize="none" />
+            </label>
+
+            <div class="auth-actions">
+              <button type="submit" id="btnResetSend" class="btn btn-primary btn-block">Gửi liên kết đặt lại</button>
+            </div>
+
+            <p id="resetStatus" class="status-text" role="status" aria-live="polite"></p>
+          </form>
+        </div>
       </div>
     </div>
   </div>
 
   <!-- ===================== ỨNG DỤNG CHÍNH ===================== -->
   <div id="appView" class="view app-view hidden">
+    <button type="button" id="btnSidebarExpand" class="sidebar-expand hidden" title="Mở thanh bên" aria-label="Mở thanh bên">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></svg>
+    </button>
+
     <!-- Sidebar -->
     <aside class="sidebar">
       <header class="sidebar-header">
@@ -108,56 +175,85 @@
             <span id="myUid" class="me-uid"></span>
           </div>
         </button>
+
         <div class="header-actions">
+          <button type="button" id="btnSidebarToggle" class="btn btn-icon" title="Ẩn/hiện thanh bên" aria-label="Ẩn/hiện thanh bên">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/><path d="M15 9l-3 3 3 3"/></svg>
+          </button>
           <button type="button" id="btnNotifications" class="btn btn-icon" title="Thông báo" aria-label="Thông báo">
-            <span aria-hidden="true">🔔</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 1 0-12 0c0 5-2 6-2 6h16s-2-1-2-6"/><path d="M10.3 20a2 2 0 0 0 3.4 0"/></svg>
             <span id="notifBadge" class="notif-badge hidden">0</span>
           </button>
           <button type="button" id="btnSettings" class="btn btn-icon" title="Cài đặt" aria-label="Cài đặt">
-            <span aria-hidden="true">⚙️</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1.03-1.56V3a2 2 0 1 1 4 0v.1A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9v.03a1.7 1.7 0 0 0 1.56 1.03H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 .97z"/></svg>
           </button>
-          <button id="btnLogout" class="btn btn-icon" title="Đăng xuất">⏻</button>
+          <button type="button" id="btnLogout" class="btn btn-icon" title="Đăng xuất" aria-label="Đăng xuất">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v9"/><path d="M6.4 5.6a8 8 0 1 0 11.2 0"/></svg>
+          </button>
         </div>
       </header>
 
-      <section class="side-block">
-        <div class="search-row">
-          <input id="searchInput" class="input" placeholder="Tìm @username, UID hoặc tên..." />
-          <button id="btnSearch" class="btn btn-primary btn-sm">Tìm</button>
-        </div>
-        <ul id="searchResults" class="user-list"></ul>
-      </section>
+      <div class="sidebar-scroll">
+        <section class="side-block">
+          <div class="search-row">
+            <span class="search-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg>
+            </span>
+            <input id="searchInput" class="input" name="search" placeholder="Tìm @username, UID hoặc tên..."
+                   autocomplete="off" spellcheck="false" aria-label="Tìm người dùng" />
+            <button id="btnSearch" class="btn btn-primary btn-sm" type="button">Tìm</button>
+          </div>
+          <ul id="searchResults" class="user-list search-results"></ul>
+        </section>
 
-      <section id="requestsSection" class="side-block">
-        <h2 class="side-title">Lời mời kết bạn</h2>
-        <ul id="requests" class="user-list"></ul>
-      </section>
+        <section id="requestsSection" class="side-block">
+          <h2 class="side-title">Lời mời kết bạn</h2>
+          <ul id="requests" class="user-list"></ul>
+        </section>
 
-      <section id="connectionsSection" class="side-block grow">
-        <h2 class="side-title">Kết nối</h2>
-        <ul id="connections" class="user-list"></ul>
-      </section>
+        <section id="connectionsSection" class="side-block grow">
+          <div class="side-head">
+            <h2 class="side-title">Kết nối</h2>
+            <button type="button" id="btnCreateGroup" class="btn btn-sm btn-ghost" title="Tạo nhóm">+ Nhóm</button>
+          </div>
+          <ul id="connections" class="user-list"></ul>
+        </section>
+      </div>
     </aside>
 
     <!-- Khu vực chat -->
     <main class="chat">
       <header class="chat-header">
-        <button id="btnBack" class="btn btn-icon chat-back" title="Quay lại">←</button>
-        <div id="chatAvatar" class="avatar">?</div>
-        <div class="chat-header-info">
-          <strong id="chatName">Chọn một cuộc trò chuyện</strong>
-          <span id="chatStatus" class="chat-status"></span>
-          <span id="chatStreak" class="chat-streak"></span>
+        <button type="button" id="btnBack" class="btn btn-icon chat-back" title="Quay lại" aria-label="Quay lại">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+
+        <div class="chat-id">
+          <div id="chatAvatar" class="avatar">?</div>
+          <div class="chat-header-info">
+            <strong id="chatName">Chọn một cuộc trò chuyện</strong>
+            <span id="chatStatus" class="chat-status"></span>
+            <span id="chatStreak" class="chat-streak"></span>
+          </div>
+        </div>
+
+        <div class="chat-header-actions">
+          <button type="button" id="btnPinChat" class="btn btn-icon" title="Ghim cuộc trò chuyện" aria-label="Ghim cuộc trò chuyện" aria-pressed="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6l-1 6 4 3v2H6v-2l4-3-1-6z"/><path d="M12 14v7"/></svg>
+          </button>
+          <button type="button" id="btnBlockChat" class="btn btn-icon" title="Chặn" aria-label="Chặn" aria-pressed="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M6.2 17.8 17.8 6.2"/></svg>
+          </button>
         </div>
       </header>
 
       <div id="chatEmpty" class="chat-empty">
         <div class="chat-empty-icon">💬</div>
-        <p>Chọn một người ở danh sách kết nối để bắt đầu trò chuyện</p>
+        <p>Chọn một người trong danh sách kết nối để bắt đầu trò chuyện</p>
       </div>
 
       <div id="messages" class="messages"></div>
-      <div id="typing" class="typing"></div>
+      <div id="typing" class="typing" aria-live="polite"></div>
 
       <button id="scrollBottom" class="scroll-bottom hidden" type="button" title="Xuống tin nhắn mới" aria-label="Xuống tin nhắn mới">
         <span class="scroll-bottom-arrow" aria-hidden="true">↓</span>
@@ -165,27 +261,35 @@
       </button>
 
       <div id="composer" class="composer hidden">
-        <div id="attachmentBar" class="attachment-bar hidden" aria-live="polite">
-          <div class="attachment-thumb">
-            <img id="imgPreview" alt="" />
-            <span id="filePreview" class="file-preview hidden">
-              <span id="filePreviewIcon" class="file-preview-icon">📎</span>
-            </span>
-          </div>
-          <div class="attachment-info">
-            <span id="attachmentName" class="attachment-name"></span>
-            <span id="attachmentSize" class="attachment-size"></span>
-            <div id="attachmentProgress" class="attachment-progress hidden" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-              <div id="attachmentProgressFill" class="attachment-progress-fill"></div>
+        <div class="composer-shell">
+          <div id="attachmentBar" class="attachment-bar hidden" aria-live="polite">
+            <div class="attachment-thumb">
+              <img id="imgPreview" alt="" />
+              <span id="filePreview" class="file-preview hidden">
+                <span id="filePreviewIcon" class="file-preview-icon">📎</span>
+              </span>
             </div>
+            <div class="attachment-info">
+              <span id="attachmentName" class="attachment-name"></span>
+              <span id="attachmentSize" class="attachment-size"></span>
+              <div id="attachmentProgress" class="attachment-progress hidden" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                <div id="attachmentProgressFill" class="attachment-progress-fill"></div>
+              </div>
+            </div>
+            <button type="button" id="btnClearFile" class="attachment-remove" title="Bỏ tệp đã chọn" aria-label="Bỏ tệp đã chọn">✕</button>
           </div>
-          <button type="button" id="btnClearFile" class="attachment-remove" title="Bỏ tệp đã chọn" aria-label="Bỏ tệp đã chọn">✕</button>
-        </div>
-        <div class="composer-row">
-          <input id="msgInput" class="input msg-input" placeholder="Nhập tin nhắn..." autocomplete="off" enterkeyhint="send" />
-          <input id="imgInput" class="input-img" type="file" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar,.7z" />
-          <button id="btnAttach" class="btn btn-icon" title="Đính kèm ảnh hoặc tệp" aria-label="Đính kèm ảnh hoặc tệp" type="button">📎</button>
-          <button id="btnSend" class="btn btn-primary" type="button">Gửi</button>
+
+          <div class="composer-row">
+            <input id="imgInput" class="input-img" type="file" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar,.7z" />
+            <button id="btnAttach" class="btn btn-icon" title="Đính kèm ảnh hoặc tệp" aria-label="Đính kèm ảnh hoặc tệp" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5 12.6 19.9a5 5 0 0 1-7.1-7.1l8.7-8.7a3.4 3.4 0 0 1 4.8 4.8l-8.6 8.6a1.8 1.8 0 0 1-2.6-2.6l7.9-7.9"/></svg>
+            </button>
+            <textarea id="msgInput" class="msg-input" rows="1" placeholder="Nhập tin nhắn..."
+                      autocomplete="off" enterkeyhint="send" aria-label="Nội dung tin nhắn"></textarea>
+            <button id="btnSend" class="btn-send" type="button" title="Gửi" aria-label="Gửi" disabled>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12 20 4.5 14.5 20l-3-6-7-2z"/></svg>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -193,7 +297,7 @@
         <div class="drop-overlay-card">
           <div class="drop-overlay-icon">📥</div>
           <strong>Thả tệp để đính kèm</strong>
-          <span>Ảnh, video, tài liệu · ảnh lớn sẽ được tự động nén</span>
+          <span>Ảnh, video, tài liệu · ảnh lớn</span>
         </div>
       </div>
     </main>
@@ -203,7 +307,7 @@
   <div id="imageViewer" class="image-viewer hidden" role="dialog" aria-modal="true" aria-label="Xem ảnh">
     <div class="image-viewer-backdrop" data-close-viewer></div>
     <img id="imageViewerImg" class="image-viewer-img" alt="" />
-    <button type="button" id="imageViewerClose" class="image-viewer-close btn btn-icon" title="Đóng">✕</button>
+    <button type="button" id="imageViewerClose" class="image-viewer-close btn btn-icon" title="Đóng" aria-label="Đóng">✕</button>
   </div>
 
   <!-- ===================== MODAL HỒ SƠ ===================== -->
@@ -212,7 +316,7 @@
     <div class="modal-card">
       <header class="modal-head">
         <h2 id="profileModalTitle">Hồ sơ của bạn</h2>
-        <button type="button" id="btnProfileClose" class="btn btn-icon" title="Đóng">✕</button>
+        <button type="button" id="btnProfileClose" class="btn btn-icon" title="Đóng" aria-label="Đóng">✕</button>
       </header>
 
       <div class="modal-body">
@@ -222,21 +326,23 @@
 
         <label class="field">
           <span>Tên hiển thị</span>
-          <input id="profileDisplayName" type="text" maxlength="40" placeholder="Nguyễn Văn A" />
+          <input id="profileDisplayName" type="text" maxlength="40" placeholder="Nguyễn Văn A" name="displayName" autocomplete="name" />
         </label>
 
         <label class="field">
           <span>Username</span>
-          <input id="profileUsername" type="text" placeholder="@nguyenvana" autocomplete="off" spellcheck="false" />
+          <input id="profileUsername" type="text" placeholder="@nguyenvana" autocomplete="off" spellcheck="false" name="username" />
           <small class="field-hint">3–20 ký tự: chữ, số, dấu _. Không dấu cách.</small>
         </label>
+
+        <div id="usernameCooldownInfo" class="field-hint hidden"></div>
 
         <p id="profileStatus" class="status-text"></p>
       </div>
 
       <footer class="modal-foot">
         <button type="button" id="btnProfileCancel" class="btn">Hủy</button>
-        <button type="button" id="btnProfileSave" class="btn btn-primary">Lưu thay đổi</button>
+        <button type="button" id="btnProfileSave" class="btn btn-primary hidden">Lưu thay đổi</button>
       </footer>
     </div>
   </div>
@@ -247,7 +353,7 @@
     <div class="modal-card notif-card">
       <header class="modal-head">
         <h2 id="notificationsTitle">Thông báo</h2>
-        <button type="button" id="btnNotificationsClose" class="btn btn-icon" title="Đóng">✕</button>
+        <button type="button" id="btnNotificationsClose" class="btn btn-icon" title="Đóng" aria-label="Đóng">✕</button>
       </header>
 
       <div class="modal-body notif-body">
@@ -264,13 +370,35 @@
     </div>
   </div>
 
+  <!-- ===================== MODAL TẠO NHÓM ===================== -->
+  <div id="groupModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="groupModalTitle">
+    <div class="modal-backdrop" data-close="group"></div>
+    <div class="modal-card">
+      <header class="modal-head">
+        <h2 id="groupModalTitle">Tạo nhóm</h2>
+        <button type="button" id="btnGroupClose" class="btn btn-icon" title="Đóng" aria-label="Đóng">✕</button>
+      </header>
+      <div class="modal-body">
+        <label class="field">
+          <span>Tên nhóm</span>
+          <input id="groupName" type="text" placeholder="Nhóm của tôi" maxlength="60" />
+        </label>
+        <div id="groupMembers" class="user-list"></div>
+      </div>
+      <footer class="modal-foot">
+        <button type="button" id="btnGroupCancel" class="btn">Hủy</button>
+        <button type="button" id="btnGroupCreate" class="btn btn-primary">Tạo</button>
+      </footer>
+    </div>
+  </div>
+
   <!-- ===================== MODAL CÀI ĐẶT ===================== -->
   <div id="settingsModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle">
     <div class="modal-backdrop" data-close="settings"></div>
     <div class="modal-card settings-card">
       <header class="modal-head">
         <h2 id="settingsModalTitle">Cài đặt</h2>
-        <button type="button" id="btnSettingsClose" class="btn btn-icon" title="Đóng">✕</button>
+        <button type="button" id="btnSettingsClose" class="btn btn-icon" title="Đóng" aria-label="Đóng">✕</button>
       </header>
 
       <div class="modal-body settings-body">
@@ -330,43 +458,40 @@
           <div class="setting-row">
             <div class="setting-label">
               <strong>Thông báo trong ứng dụng</strong>
-              <span class="setting-desc">Chuông và danh sách thông báo</span>
+              <span class="setting-desc">Hiện thông báo ở chuông và danh sách</span>
             </div>
             <label class="switch">
               <input type="checkbox" data-setting="notifInApp" aria-label="Thông báo trong ứng dụng" />
               <span class="switch-track"></span>
             </label>
           </div>
-
           <div class="setting-row">
             <div class="setting-label">
-              <strong>Âm thanh</strong>
-              <span class="setting-desc">Phát âm báo khi có thông báo mới</span>
+              <strong>Âm thanh thông báo</strong>
+              <span class="setting-desc">Phát âm báo khi có tin nhắn mới</span>
             </div>
             <label class="switch">
               <input type="checkbox" data-setting="notifSound" aria-label="Âm thanh thông báo" />
               <span class="switch-track"></span>
             </label>
           </div>
-
           <div class="setting-row">
             <div class="setting-label">
-              <strong>Thông báo hệ thống</strong>
-              <span class="setting-desc">Hiển thị thông báo của trình duyệt khi ẩn tab</span>
+              <strong>Xem trước nội dung</strong>
+              <span class="setting-desc">Hiện nội dung tin nhắn trong thông báo</span>
             </div>
             <label class="switch">
-              <input type="checkbox" data-setting="notifDesktop" aria-label="Thông báo hệ thống" />
+              <input type="checkbox" data-setting="notifPreview" aria-label="Xem trước nội dung" />
               <span class="switch-track"></span>
             </label>
           </div>
-
           <div class="setting-row">
             <div class="setting-label">
-              <strong>Hiện nội dung tin nhắn</strong>
-              <span class="setting-desc">Tắt để ẩn nội dung trong thông báo</span>
+              <strong>Thông báo hệ thống</strong>
+              <span class="setting-desc">Thông báo của trình duyệt khi thu nhỏ tab</span>
             </div>
             <label class="switch">
-              <input type="checkbox" data-setting="notifPreview" aria-label="Hiện nội dung tin nhắn" />
+              <input type="checkbox" data-setting="notifDesktop" aria-label="Thông báo hệ thống" />
               <span class="switch-track"></span>
             </label>
           </div>
@@ -377,10 +502,30 @@
           <div class="setting-row">
             <div class="setting-label">
               <strong>Gửi bằng Enter</strong>
-              <span class="setting-desc">Tắt: dùng nút Gửi, Enter để xuống dòng</span>
+              <span class="setting-desc">Tắt: Enter để xuống dòng, dùng nút Gửi</span>
             </div>
             <label class="switch">
               <input type="checkbox" data-setting="enterToSend" aria-label="Gửi bằng Enter" />
+              <span class="switch-track"></span>
+            </label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-label">
+              <strong>Xác nhận đã đọc</strong>
+              <span class="setting-desc">Gửi trạng thái "đã xem" cho người khác</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" data-setting="readReceipts" aria-label="Xác nhận đã đọc" />
+              <span class="switch-track"></span>
+            </label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-label">
+              <strong>Hiển thị đang nhập</strong>
+              <span class="setting-desc">Cho người khác biết khi bạn đang gõ</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" data-setting="typingIndicator" aria-label="Hiển thị đang nhập" />
               <span class="switch-track"></span>
             </label>
           </div>
@@ -397,32 +542,65 @@
   <script type="module">
     import { auth } from "./js/firebase-config.js";
     import { register, login, logout, resetPassword, friendlyError } from "./js/auth.js";
-    import { getUserProfile, createUserProfile, updateDisplayName, updateUsername, validateUsername } from "./js/users.js";
+    import { getUserProfile, createUserProfile, updateDisplayName, updateUsername, validateUsername, normalizeUsername, blockUser, unblockUser, isBlocked } from "./js/users.js";
     import { searchByUsername } from "./js/connections.js";
     import "./js/app.js";
     import { previewImage, clearImagePreview } from "./js/images.js";
     import { formatFileSize, MAX_FILE_SIZE } from "./js/storage.js";
     import { initSettings, getSettings } from "./js/settings.js";
     import { initNotifications } from "./js/notifications.js";
-    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
+    import { onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
 
     initSettings();
     initNotifications();
 
     const $ = (id) => document.getElementById(id);
+
+    /* ---------- Nền sao động màn đăng nhập ---------- */
+    const starsBox = $("stars");
+    if (starsBox) {
+      for (let i = 0; i < 60; i++) {
+        const s = document.createElement("span");
+        const sz = Math.random() < 0.15 ? 2 : 1;
+        s.style.width = s.style.height = sz + "px";
+        s.style.left = Math.random() * 100 + "%";
+        s.style.top = Math.random() * 100 + "%";
+        s.style.animationDelay = (Math.random() * 4) + "s";
+        s.style.animationDuration = (2 + Math.random() * 3) + "s";
+        starsBox.appendChild(s);
+      }
+    }
+
+    /* ---------- Hiệu ứng ripple khi bấm nút ---------- */
+    document.addEventListener("click", (e) => {
+      const btn = e.target.closest(".btn");
+      if (!btn || btn.disabled) return;
+      const rect = btn.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      const size = Math.max(rect.width, rect.height);
+      const r = document.createElement("span");
+      r.className = "ripple";
+      r.style.width = r.style.height = size + "px";
+      r.style.left = (e.clientX - rect.left - size / 2) + "px";
+      r.style.top = (e.clientY - rect.top - size / 2) + "px";
+      btn.appendChild(r);
+      setTimeout(() => r.remove(), 620);
+    }, { capture: true });
+
+    /* ---------- Toast & status ---------- */
     const toast = $("toast");
     let toastTimer = null;
     function notify(m) {
-      if (!m) return;
+      if (!m || !toast) return;
       toast.textContent = m;
       toast.classList.add("show");
       clearTimeout(toastTimer);
       toastTimer = setTimeout(() => toast.classList.remove("show"), 3000);
     }
     window.notify = notify;
-    // Đặt thông báo với kiểu: "success" | "error" | null (trung tính)
     const setStatus = (el, m, type) => {
-      el.textContent = m;
+      if (!el) return;
+      el.textContent = m || "";
       el.classList.remove("success", "error");
       if (type) el.classList.add(type);
       notify(m);
@@ -434,11 +612,9 @@
     const REMEMBER_MAX_AGE = 60 * 60 * 24 * 365;
     function setRememberCookie(uid) {
       try {
-        document.cookie =
-          REMEMBER_COOKIE + "=1; path=/; max-age=" + REMEMBER_MAX_AGE + "; SameSite=Lax";
+        document.cookie = REMEMBER_COOKIE + "=1; path=/; max-age=" + REMEMBER_MAX_AGE + "; SameSite=Lax";
         if (uid) {
-          document.cookie =
-            "starment_uid=" + encodeURIComponent(uid) +
+          document.cookie = "starment_uid=" + encodeURIComponent(uid) +
             "; path=/; max-age=" + REMEMBER_MAX_AGE + "; SameSite=Lax";
         }
       } catch (e) { /* ignore */ }
@@ -451,62 +627,92 @@
     }
 
     /* ---------- Chuyển tab đăng nhập / đăng ký ---------- */
+    const loginForm = $("loginForm");
+    const registerForm = $("registerForm");
     let authTab = "login";
+
+    function setAuthTab(tab) {
+      authTab = tab === "register" ? "register" : "login";
+      document.querySelectorAll(".auth-tab").forEach((t) => {
+        const active = t.dataset.tab === authTab;
+        t.classList.toggle("active", active);
+        t.setAttribute("aria-selected", String(active));
+      });
+      loginForm?.classList.toggle("hidden", authTab !== "login");
+      registerForm?.classList.toggle("hidden", authTab !== "register");
+      setStatus($("status"), "");
+      setStatus($("registerStatus"), "");
+    }
     document.querySelectorAll(".auth-tab").forEach((tab) => {
-      tab.onclick = () => {
-        authTab = tab.dataset.tab;
-        document.querySelectorAll(".auth-tab").forEach((t) => t.classList.toggle("active", t === tab));
-        const isRegister = authTab === "register";
-        $("displayNameField").classList.toggle("hidden", !isRegister);
-        $("usernameField").classList.toggle("hidden", !isRegister);
-        $("btnLogin").classList.toggle("hidden", isRegister);
-        $("btnRegister").classList.toggle("hidden", !isRegister);
-        setStatus($("status"), "");
-      };
+      tab.addEventListener("click", () => setAuthTab(tab.dataset.tab));
     });
 
-    /* ---------- Đăng nhập / đăng ký ---------- */
-    $("authForm").onsubmit = async (e) => {
+    /* ---------- Đăng nhập ---------- */
+    loginForm?.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const email = $("email").value.trim();
-      const password = $("password").value;
+      const email = ($("email")?.value || "").trim();
+      const password = $("password")?.value || "";
       setStatus($("status"), "");
-
-      if (authTab === "register") {
-        const displayName = $("displayName").value;
-        const usernameRaw = $("username").value;
-
-        // Kiểm tra username ngay tại client trước khi gọi Firebase
-        const uErr = validateUsername(usernameRaw);
-        if (uErr) { setStatus($("status"), uErr, "error"); return; }
-
-        const btn = $("btnRegister");
-        const originalText = btn.textContent;
-        btn.disabled = true;
-        btn.textContent = "Đang tạo…";
-        try {
-          const user = await register(email, password, displayName);
-          try {
-            await createUserProfile(user, { displayName, username: usernameRaw });
-            setStatus($("status"), "Đăng ký thành công", "success");
-          } catch (pe) {
-            setStatus($("status"), "Đã tạo tài khoản nhưng chưa lưu được hồ sơ: " + pe.message, "error");
-          }
-        } catch (err) {
-          setStatus($("status"), friendlyError(err, "register"), "error");
-        } finally {
-          btn.disabled = false;
-          btn.textContent = originalText;
-        }
-      } else {
-        try {
-          await login(email, password);
-          setStatus($("status"), "Đăng nhập thành công", "success");
-        } catch (err) {
-          setStatus($("status"), friendlyError(err, "login"), "error");
-        }
+      if (!email || !password) {
+        setStatus($("status"), "Vui lòng nhập email và mật khẩu.", "error");
+        return;
       }
-    };
+      const btn = $("btnLogin");
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.classList.add("is-loading");
+      try {
+        await login(email, password);
+        setStatus($("status"), "Đăng nhập thành công", "success");
+      } catch (err) {
+        setStatus($("status"), friendlyError(err, "login"), "error");
+      } finally {
+        btn.disabled = false;
+        btn.classList.remove("is-loading");
+        btn.textContent = originalText;
+      }
+    });
+
+    /* ---------- Đăng ký ---------- */
+    registerForm?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const usernameRaw = ($("username")?.value || "").trim();
+      const displayName = ($("displayName")?.value || "").trim();
+      const email = ($("regEmail")?.value || "").trim();
+      const password = $("regPassword")?.value || "";
+
+      setStatus($("registerStatus"), "");
+
+      const usernameErr = validateUsername(usernameRaw);
+      if (usernameErr) { setStatus($("registerStatus"), usernameErr, "error"); $("username")?.focus(); return; }
+      if (!displayName) { setStatus($("registerStatus"), "Vui lòng nhập tên hiển thị.", "error"); $("displayName")?.focus(); return; }
+      if (!email) { setStatus($("registerStatus"), "Vui lòng nhập địa chỉ email.", "error"); $("regEmail")?.focus(); return; }
+      if (!password || password.length < 6) {
+        setStatus($("registerStatus"), "Mật khẩu phải có ít nhất 6 ký tự.", "error");
+        $("regPassword")?.focus();
+        return;
+      }
+
+      const btn = $("btnRegister");
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.classList.add("is-loading");
+      try {
+        const user = await register(email, password, displayName);
+        try {
+          await createUserProfile(user, { displayName, username: normalizeUsername(usernameRaw) });
+          setStatus($("registerStatus"), "Đăng ký thành công", "success");
+        } catch (pe) {
+          setStatus($("registerStatus"), "Đã tạo tài khoản nhưng chưa lưu được hồ sơ: " + pe.message, "error");
+        }
+      } catch (err) {
+        setStatus($("registerStatus"), friendlyError(err, "register"), "error");
+      } finally {
+        btn.disabled = false;
+        btn.classList.remove("is-loading");
+        btn.textContent = originalText;
+      }
+    });
 
     /* ---------- Quên mật khẩu ---------- */
     const authPanel = $("authPanel");
@@ -514,72 +720,67 @@
     const resetStatus = $("resetStatus");
 
     function showResetView() {
-      authPanel.classList.add("hidden");
-      resetPanel.classList.remove("hidden");
-      // Gợi ý email đang nhập ở màn đăng nhập (nếu có)
-      if (!$("resetEmail").value) $("resetEmail").value = $("email").value.trim();
+      authPanel?.classList.add("hidden");
+      resetPanel?.classList.remove("hidden");
+      if ($("resetEmail") && !$("resetEmail").value) {
+        $("resetEmail").value = ($("email")?.value || "").trim();
+      }
       setStatus(resetStatus, "");
-      $("resetEmail").focus();
+      $("resetEmail")?.focus();
     }
     function hideResetView() {
-      resetPanel.classList.add("hidden");
-      authPanel.classList.remove("hidden");
+      resetPanel?.classList.add("hidden");
+      authPanel?.classList.remove("hidden");
       setStatus(resetStatus, "");
     }
 
-    $("btnReset").onclick = (e) => {
-      e.preventDefault();
-      showResetView();
-    };
-    $("btnResetBack").onclick = () => hideResetView();
+    $("btnReset")?.addEventListener("click", (e) => { e.preventDefault(); showResetView(); });
+    $("btnResetBack")?.addEventListener("click", hideResetView);
 
-    // Kiểm tra định dạng email đơn giản ở phía client
     const isValidEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 
-    $("resetForm").onsubmit = async (e) => {
+    $("resetForm")?.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const email = $("resetEmail").value.trim();
+      const email = ($("resetEmail")?.value || "").trim();
       const btn = $("btnResetSend");
       setStatus(resetStatus, "");
 
-      // Kiểm tra email trước khi gửi
       if (!email || !isValidEmail(email)) {
         setStatus(resetStatus, "Vui lòng nhập địa chỉ email hợp lệ.", "error");
         return;
       }
 
-      // Trạng thái đang gửi — tránh nhấn liên tục
       const originalText = btn.textContent;
       btn.disabled = true;
-      btn.textContent = "Đang gửi…";
+      btn.classList.add("is-loading");
       try {
         await resetPassword(email);
-        // Không tiết lộ email có tồn tại hay không
-        setStatus(
-          resetStatus,
+        setStatus(resetStatus,
           "Nếu email tồn tại, chúng tôi đã gửi liên kết đặt lại mật khẩu. Vui lòng kiểm tra hộp thư đến và cả thư mục Spam.",
-          "success"
-        );
+          "success");
       } catch (err) {
         setStatus(resetStatus, friendlyError(err, "reset"), "error");
       } finally {
         btn.disabled = false;
+        btn.classList.remove("is-loading");
         btn.textContent = originalText;
       }
-    };
+    });
 
-    $("btnLogout").onclick = async () => {
+    $("btnLogout")?.addEventListener("click", async () => {
       try { await logout(); status("Đã đăng xuất"); }
       catch (e) { setStatus($("status"), friendlyError(e, "login"), "error"); }
-    };
+    });
+
+    await setPersistence(auth, browserLocalPersistence);
 
     /* ---------- Chuyển view theo trạng thái đăng nhập ---------- */
     let myProfile = null;
     onAuthStateChanged(auth, async (u) => {
       if (u) {
         setRememberCookie(u.uid);
-        $("authView").classList.add("hidden");
-        $("appView").classList.remove("hidden");
+        $("authView")?.classList.add("hidden");
+        $("appView")?.classList.remove("hidden");
         try {
           const profile = await getUserProfile(u.uid);
           myProfile = profile;
@@ -594,34 +795,91 @@
         }
       } else {
         clearRememberCookie();
-        $("appView").classList.add("hidden");
-        $("authView").classList.remove("hidden");
-        // Đảm bảo luôn về màn đăng nhập khi chưa đăng nhập
-        // (vd: sau khi đăng xuất từ màn quên mật khẩu)
-        $("resetPanel").classList.add("hidden");
-        $("authPanel").classList.remove("hidden");
+        $("appView")?.classList.add("hidden");
+        $("authView")?.classList.remove("hidden");
+        $("resetPanel")?.classList.add("hidden");
+        $("authPanel")?.classList.remove("hidden");
         clearFileSelection();
         myProfile = null;
       }
     });
 
+    /* ============================================================
+       SIDEBAR — ẩn/hiện + ghi nhớ trạng thái (local, không Firebase)
+       ============================================================ */
+    const appView = $("appView");
+    const SIDEBAR_KEY = "starment_sidebar_collapsed";
+    const isMobile = () => window.matchMedia("(max-width: 720px)").matches;
+
+    function applySidebarState() {
+      if (!appView) return;
+      const collapsed = localStorage.getItem(SIDEBAR_KEY) === "1" && !isMobile();
+      appView.classList.toggle("sidebar-collapsed", collapsed);
+      $("btnSidebarExpand")?.classList.toggle("hidden", !collapsed || isMobile());
+    }
+    $("btnSidebarToggle")?.addEventListener("click", () => {
+      const next = !appView.classList.contains("sidebar-collapsed");
+      try { localStorage.setItem(SIDEBAR_KEY, next ? "1" : "0"); } catch (e) {}
+      applySidebarState();
+    });
+    $("btnSidebarExpand")?.addEventListener("click", () => {
+      try { localStorage.setItem(SIDEBAR_KEY, "0"); } catch (e) {}
+      applySidebarState();
+    });
+    window.addEventListener("resize", applySidebarState);
+    applySidebarState();
+
     /* ---------- Modal hồ sơ ---------- */
     const profileModal = $("profileModal");
 
+    function currentUserUid() {
+      return window.app?.currentUser?.()?.uid || auth.currentUser?.uid;
+    }
+    function normalizeUsernameInput(v) { return (v || "").trim().replace(/^@+/, "").toLowerCase(); }
+
+    function updateProfileSaveVisibility() {
+      const btn = $("btnProfileSave");
+      if (!btn) return;
+      const p = myProfile || {};
+      const dnChanged = ($("profileDisplayName")?.value || "").trim() !== (p.displayName || "").trim();
+      const unChanged = normalizeUsernameInput($("profileUsername")?.value) !== (p.username || "");
+      btn.classList.toggle("hidden", !(dnChanged || unChanged));
+    }
+
+    function updateUsernameCooldownInfo(profile) {
+      const info = $("usernameCooldownInfo");
+      if (!info) return;
+      if (!profile || !profile.username || !profile.usernameChangedAt) {
+        info.classList.add("hidden");
+        return;
+      }
+      const lastChange = profile.usernameChangedAt.toDate ? profile.usernameChangedAt.toDate() : new Date(profile.usernameChangedAt);
+      const diffDays = (new Date() - lastChange) / (1000 * 60 * 60 * 24);
+      const remaining = Math.max(0, 10 - Math.ceil(diffDays));
+      if (remaining > 0) {
+        info.textContent = `Còn ${remaining} ngày mới có thể đổi username lần nữa.`;
+        info.classList.remove("hidden");
+      } else {
+        info.classList.add("hidden");
+      }
+    }
+
     function openProfileModal() {
-      if (!currentUserUid()) return;
+      if (!currentUserUid() || !profileModal) return;
       const p = myProfile || {};
       $("profileDisplayName").value = p.displayName || "";
       $("profileUsername").value = p.username || "";
-      const letter = (p.displayName || auth.currentUser?.email || "?").charAt(0).toUpperCase();
-      $("profileAvatar").textContent = letter;
+      $("profileAvatar").textContent = (p.displayName || auth.currentUser?.email || "?").charAt(0).toUpperCase();
       setStatus($("profileStatus"), "");
+      updateProfileSaveVisibility();
+      updateUsernameCooldownInfo(p);
       profileModal.classList.remove("hidden", "closing");
       document.body.classList.add("modal-open");
-      setTimeout(() => $("profileDisplayName").focus(), 60);
+      setTimeout(() => $("profileDisplayName")?.focus(), 70);
     }
+
     function closeProfileModal() {
-      if (profileModal.classList.contains("hidden") || profileModal.classList.contains("closing")) return;
+      if (!profileModal || profileModal.classList.contains("hidden") || profileModal.classList.contains("closing")) return;
       profileModal.classList.add("closing");
       document.body.classList.remove("modal-open");
       setTimeout(() => {
@@ -629,31 +887,26 @@
         profileModal.classList.remove("closing");
       }, 190);
     }
-    function currentUserUid() {
-      return window.app?.currentUser?.()?.uid || auth.currentUser?.uid;
-    }
 
-    $("btnProfile").onclick = (e) => { e.preventDefault(); openProfileModal(); };
-    $("btnProfileClose").onclick = closeProfileModal;
-    $("btnProfileCancel").onclick = closeProfileModal;
-    profileModal.querySelector('[data-close="profile"]').onclick = closeProfileModal;
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && !profileModal.classList.contains("hidden")) closeProfileModal();
-    });
+    $("btnProfile")?.addEventListener("click", openProfileModal);
+    $("profileDisplayName")?.addEventListener("input", updateProfileSaveVisibility);
+    $("profileUsername")?.addEventListener("input", updateProfileSaveVisibility);
+    $("btnProfileClose")?.addEventListener("click", closeProfileModal);
+    $("btnProfileCancel")?.addEventListener("click", closeProfileModal);
+    profileModal?.querySelector('[data-close="profile"]')?.addEventListener("click", closeProfileModal);
 
-    $("btnProfileSave").onclick = async () => {
+    $("btnProfileSave")?.addEventListener("click", async () => {
       const uid = currentUserUid();
       if (!uid) return;
       const btn = $("btnProfileSave");
-      const displayName = $("profileDisplayName").value.trim();
-      const usernameRaw = $("profileUsername").value;
+      const displayName = ($("profileDisplayName")?.value || "").trim();
+      const usernameRaw = $("profileUsername")?.value || "";
 
       const uErr = validateUsername(usernameRaw);
       if (uErr) { setStatus($("profileStatus"), uErr, "error"); return; }
 
       btn.disabled = true;
       btn.classList.add("is-loading");
-      btn.textContent = "Đang lưu…";
       setStatus($("profileStatus"), "");
       try {
         await updateDisplayName(uid, displayName);
@@ -664,20 +917,141 @@
         $("myUid").textContent = fresh?.username ? "@" + fresh.username : uid.slice(0, 8) + "…";
         $("myAvatar").textContent = (fresh?.displayName || displayName || "?").charAt(0).toUpperCase();
         setStatus($("profileStatus"), "Đã lưu hồ sơ", "success");
-        setTimeout(closeProfileModal, 700);
+        setTimeout(closeProfileModal, 650);
       } catch (err) {
         setStatus($("profileStatus"), err?.message || "Không lưu được hồ sơ.", "error");
       } finally {
         btn.disabled = false;
         btn.classList.remove("is-loading");
-        btn.textContent = "Lưu thay đổi";
       }
-    };
+    });
 
-    /* ---------- Tìm kiếm ---------- */
-    $("btnSearch").onclick = async () => {
-      const q = $("searchInput").value.trim();
+    /* ---------- Chặn người dùng trong cuộc trò chuyện ---------- */
+    async function refreshBlockButton() {
+      const otherUid = window.app?.currentChatPartnerUid?.();
+      const myUid = window.app?.currentUser?.()?.uid;
+      const btn = $("btnBlockChat");
+      if (!otherUid || !myUid || !btn) {
+        btn?.classList.remove("is-on");
+        return;
+      }
+      try {
+        const blocked = await isBlocked(myUid, otherUid);
+        btn.classList.toggle("is-on", blocked);
+        btn.setAttribute("aria-pressed", String(!!blocked));
+        btn.title = blocked ? "Bỏ chặn" : "Chặn";
+      } catch (e) { /* ignore */ }
+    }
+
+    $("btnBlockChat")?.addEventListener("click", async () => {
+      const otherUid = window.app?.currentChatPartnerUid?.();
+      const myUid = window.app?.currentUser?.()?.uid;
+      if (!otherUid || !myUid) return;
+      try {
+        const blocked = await isBlocked(myUid, otherUid);
+        if (blocked) {
+          await unblockUser(myUid, otherUid);
+          notify("Đã bỏ chặn");
+          refreshBlockButton();
+        } else {
+          await blockUser(myUid, otherUid);
+          notify("Đã chặn người dùng");
+          window.app?.closeChat?.();
+        }
+      } catch (e) { notify(e?.message || "Không thực hiện được."); }
+    });
+
+    $("btnPinChat")?.addEventListener("click", () => {
+      const pinned = window.app?.togglePin?.();
+      if (pinned === true) notify("Đã ghim cuộc trò chuyện");
+      else if (pinned === false) notify("Đã bỏ ghim cuộc trò chuyện");
+    });
+    window.addEventListener("chat:opened", () => { refreshBlockButton().catch(() => {}); });
+
+    /* ---------- Tạo nhóm ---------- */
+    function closeGroupModal() {
+      const modal = $("groupModal");
+      if (!modal) return;
+      modal.classList.add("closing");
+      document.body.classList.remove("modal-open");
+      setTimeout(() => {
+        modal.classList.add("hidden");
+        modal.classList.remove("closing");
+      }, 190);
+    }
+    function openGroupModal() {
+      const modal = $("groupModal");
+      if (!modal) return;
+      modal.classList.remove("hidden", "closing");
+      document.body.classList.add("modal-open");
+      setTimeout(() => $("groupName")?.focus(), 80);
+    }
+
+    $("btnCreateGroup")?.addEventListener("click", async () => {
+      const membersEl = $("groupMembers");
+      if (!membersEl) return;
+      membersEl.innerHTML = "";
+      let users = [];
+      try {
+        const { getConnectedUsers } = await import("./js/connections.js");
+        users = await getConnectedUsers(window.app.currentUser().uid);
+      } catch (e) { /* ignore */ }
+      for (const uid of users) {
+        const p = await getUserProfile(uid);
+        const li = document.createElement("li");
+        li.className = "user-item";
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.value = uid;
+        cb.checked = true;
+        const info = document.createElement("div");
+        info.className = "user-info";
+        const nm = document.createElement("strong");
+        nm.textContent = p?.displayName || uid.slice(0, 8);
+        const un = document.createElement("span");
+        un.className = "user-username";
+        un.textContent = p?.username ? "@" + p.username : "";
+        info.append(nm, un);
+        li.append(cb, info);
+        membersEl.appendChild(li);
+      }
+      openGroupModal();
+    });
+
+    $("btnGroupClose")?.addEventListener("click", closeGroupModal);
+    $("btnGroupCancel")?.addEventListener("click", closeGroupModal);
+    $("groupModal")?.querySelector('[data-close="group"]')?.addEventListener("click", closeGroupModal);
+
+    $("btnGroupCreate")?.addEventListener("click", async () => {
+      const name = ($("groupName")?.value || "").trim() || "Nhóm";
+      const cbs = $("groupMembers")?.querySelectorAll('input[type="checkbox"]:checked') || [];
+      const memberUids = Array.from(cbs).map((c) => c.value);
+      const myUid = window.app.currentUser().uid;
+      if (!memberUids.includes(myUid)) memberUids.unshift(myUid);
+      try {
+        const { doc, setDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js");
+        const { db } = await import("./js/firebase-config.js");
+        const groupId = "group_" + Date.now();
+        await setDoc(doc(db, "chats", groupId), {
+          isGroup: true,
+          name,
+          members: memberUids,
+          createdAt: serverTimestamp(),
+          createdBy: myUid
+        });
+        const modal = $("groupModal");
+        modal?.classList.add("hidden");
+        document.body.classList.remove("modal-open");
+        window.app.openGroupChat?.(groupId, name);
+        notify("Đã tạo nhóm");
+      } catch (e) { notify(e?.message || "Không tạo được nhóm"); }
+    });
+
+    /* ---------- Tìm kiếm người dùng ---------- */
+    $("btnSearch")?.addEventListener("click", async () => {
+      const q = ($("searchInput")?.value || "").trim();
       const results = $("searchResults");
+      if (!results) return;
       results.innerHTML = "";
       if (!q) return;
 
@@ -685,7 +1059,6 @@
       const originalText = btn.textContent;
       btn.disabled = true;
       btn.classList.add("is-loading");
-      btn.textContent = "Tìm";
       let users = [];
       let errored = false;
       try {
@@ -719,19 +1092,17 @@
         const av = document.createElement("div");
         av.className = "avatar avatar-sm";
         av.textContent = (u.displayName || "?").charAt(0).toUpperCase();
-        
-        // Online status indicator for search results
+
         const statusDot = document.createElement("span");
         statusDot.className = "status-dot";
         statusDot.dataset.uid = u.uid;
         av.appendChild(statusDot);
-        // Use presenceCache from app.js if available
         if (window.app && window.app.presenceCache) {
           window.app.updateStatusDot(statusDot, window.app.presenceCache.get(u.uid) || { online: false });
         } else {
           window.app.updateStatusDot(statusDot, { online: false });
         }
-        
+
         const info = document.createElement("div");
         info.className = "user-info";
         const nm = document.createElement("strong");
@@ -740,18 +1111,18 @@
         un.className = "user-username";
         un.textContent = u.username ? "@" + u.username : u.uid.slice(0, 8) + "…";
         info.append(nm, un);
-        const btn2 = document.createElement("button");
-        btn2.className = "btn btn-primary btn-sm";
-        btn2.textContent = "Kết nối";
-        btn2.onclick = async (ev) => {
+
+        const connectBtn = document.createElement("button");
+        connectBtn.className = "btn btn-primary btn-sm";
+        connectBtn.textContent = "Kết nối";
+        connectBtn.onclick = async (ev) => {
           ev.stopPropagation();
           try { await window.app.sendFriendRequest(window.app.currentUser().uid, u.uid); notify("Đã gửi lời mời"); }
           catch (e) { notify(e.message); }
         };
-        li.append(av, info, btn2);
+        li.append(av, info, connectBtn);
         results.appendChild(li);
-        
-        // Listen to presence for this user
+
         import("./js/presence.js").then(({ listenPresence }) => {
           listenPresence(u.uid, (presence) => {
             if (window.app && window.app.presenceCache) {
@@ -762,12 +1133,27 @@
           });
         });
       });
-    };
-    $("searchInput").onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); $("btnSearch").click(); } };
+    });
+    $("searchInput")?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); $("btnSearch")?.click(); }
+    });
 
     /* ---------- Đính kèm ảnh / tệp ---------- */
     let selectedFile = null;
     let isSending = false;
+    const msgInput = $("msgInput");
+    const sendBtn = $("btnSend");
+
+    function autoGrowInput() {
+      if (!msgInput) return;
+      msgInput.style.height = "auto";
+      msgInput.style.height = Math.min(msgInput.scrollHeight, 148) + "px";
+    }
+    function updateSendState() {
+      if (!sendBtn) return;
+      const hasText = !!(msgInput && msgInput.value.trim().length);
+      sendBtn.disabled = isSending || (!hasText && !selectedFile);
+    }
 
     function fileIconFor(f) {
       const m = (f?.type || "").toLowerCase();
@@ -795,18 +1181,18 @@
 
     function clearFileSelection(clearInput = true) {
       selectedFile = null;
-      if (clearInput) $("imgInput").value = "";
+      if (clearInput && $("imgInput")) $("imgInput").value = "";
       clearImagePreview($("imgPreview"));
-      const filePreview = $("filePreview");
-      if (filePreview) filePreview.classList.add("hidden");
+      $("filePreview")?.classList.add("hidden");
       const bar = $("attachmentBar");
       if (bar) {
         bar.classList.add("hidden");
         bar.classList.remove("pop");
       }
-      $("attachmentName").textContent = "";
-      $("attachmentSize").textContent = "";
+      if ($("attachmentName")) $("attachmentName").textContent = "";
+      if ($("attachmentSize")) $("attachmentSize").textContent = "";
       setAttachmentProgress(0, false);
+      updateSendState();
     }
     window.app.clearAttachment = () => clearFileSelection();
 
@@ -818,7 +1204,6 @@
         return;
       }
       const isImage = (f.type || "").startsWith("image/");
-      // Ảnh lớn được phép chọn vì sẽ được nén trước khi tải lên.
       const selectLimit = isImage ? 25 * 1024 * 1024 : MAX_FILE_SIZE;
       if (!f.size) {
         notify("Tệp rỗng hoặc không đọc được.");
@@ -853,6 +1238,7 @@
         $("filePreview").classList.remove("hidden");
       }
       setAttachmentProgress(0, false);
+      updateSendState();
     }
 
     function acceptFiles(files) {
@@ -860,17 +1246,17 @@
       if (f) setSelectedFile(f);
     }
 
-    $("btnAttach").onclick = () => {
+    $("btnAttach")?.addEventListener("click", () => {
       if (isSending) return;
-      $("imgInput").click();
-    };
-    $("btnClearFile").onclick = (e) => {
+      $("imgInput")?.click();
+    });
+    $("btnClearFile")?.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
       if (isSending) return;
       clearFileSelection();
-    };
-    $("imgInput").onchange = () => acceptFiles($("imgInput").files);
+    });
+    $("imgInput")?.addEventListener("change", () => acceptFiles($("imgInput").files));
 
     /* Kéo-thả tệp vào khu vực chat */
     const chatArea = document.querySelector(".chat");
@@ -879,35 +1265,35 @@
     const isDragWithFiles = (e) =>
       !!e.dataTransfer && Array.from(e.dataTransfer.types || []).includes("Files");
 
-    chatArea.addEventListener("dragenter", (e) => {
-      if (!isDragWithFiles(e) || $("composer").classList.contains("hidden")) return;
+    chatArea?.addEventListener("dragenter", (e) => {
+      if (!isDragWithFiles(e) || $("composer")?.classList.contains("hidden")) return;
       e.preventDefault();
       dragDepth += 1;
-      dropOverlay.classList.add("show");
+      dropOverlay?.classList.add("show");
     });
-    chatArea.addEventListener("dragover", (e) => {
+    chatArea?.addEventListener("dragover", (e) => {
       if (!isDragWithFiles(e)) return;
       e.preventDefault();
       e.dataTransfer.dropEffect = "copy";
     });
-    chatArea.addEventListener("dragleave", () => {
+    chatArea?.addEventListener("dragleave", () => {
       dragDepth = Math.max(0, dragDepth - 1);
-      if (dragDepth === 0) dropOverlay.classList.remove("show");
+      if (dragDepth === 0) dropOverlay?.classList.remove("show");
     });
-    chatArea.addEventListener("drop", (e) => {
+    chatArea?.addEventListener("drop", (e) => {
       e.preventDefault();
       dragDepth = 0;
-      dropOverlay.classList.remove("show");
-      if ($("composer").classList.contains("hidden") || isSending) return;
+      dropOverlay?.classList.remove("show");
+      if ($("composer")?.classList.contains("hidden") || isSending) return;
       acceptFiles(e.dataTransfer?.files);
     });
     window.addEventListener("dragend", () => {
       dragDepth = 0;
-      dropOverlay.classList.remove("show");
+      dropOverlay?.classList.remove("show");
     });
 
     /* Dán ảnh/tệp từ clipboard */
-    $("msgInput").addEventListener("paste", (e) => {
+    msgInput?.addEventListener("paste", (e) => {
       const items = e.clipboardData?.items || [];
       for (const item of items) {
         if (item.kind === "file") {
@@ -922,25 +1308,23 @@
     });
 
     /* ---------- Gửi tin nhắn ---------- */
-    $("btnSend").onclick = async () => {
+    async function sendCurrentMessage() {
       if (isSending) return;
       const chatId = window.app.currentChatId();
       const uid = window.app.currentUser()?.uid;
       if (!chatId || !uid) return;
       const file = selectedFile;
-      const text = $("msgInput").value.trim();
-      if (!file && !text) { $("msgInput").focus(); return; }
+      const text = (msgInput?.value || "").trim();
+      if (!file && !text) { msgInput?.focus(); return; }
 
       const replyTo = window.app.replyingToMsg?.id || null;
-      const btn = $("btnSend");
-      const originalText = btn.textContent;
       isSending = true;
-      btn.disabled = true;
-      btn.classList.add("is-loading");
-      $("btnAttach").disabled = true;
-      $("btnClearFile").disabled = true;
-        if (file) setAttachmentProgress(0, true);
-        window.sounds?.send?.();
+      updateSendState();
+      sendBtn?.classList.add("is-loading");
+      if ($("btnAttach")) $("btnAttach").disabled = true;
+      if ($("btnClearFile")) $("btnClearFile").disabled = true;
+      if (file) setAttachmentProgress(0, true);
+      window.sounds?.send?.();
 
       try {
         let attachment = null;
@@ -950,7 +1334,10 @@
         }
         const imageUrl = attachment && attachment.kind === "image" && attachment.url ? attachment.url : null;
         await window.app.sendMessage(chatId, uid, text || null, imageUrl, replyTo, attachment);
-        if ($("msgInput").value.trim() === text) $("msgInput").value = "";
+        if ((msgInput?.value || "").trim() === text) {
+          msgInput.value = "";
+          autoGrowInput();
+        }
         clearFileSelection();
         window.app.cancelReply();
         window.app.scrollToBottom?.("smooth");
@@ -959,21 +1346,37 @@
         setAttachmentProgress(0, false);
       } finally {
         isSending = false;
-        btn.disabled = false;
-        btn.classList.remove("is-loading");
-        btn.textContent = originalText;
-        $("btnAttach").disabled = false;
-        $("btnClearFile").disabled = false;
+        sendBtn?.classList.remove("is-loading");
+        if ($("btnAttach")) $("btnAttach").disabled = false;
+        if ($("btnClearFile")) $("btnClearFile").disabled = false;
+        updateSendState();
+        msgInput?.focus();
       }
-    };
+    }
+    sendBtn?.addEventListener("click", sendCurrentMessage);
 
-    $("msgInput").onkeydown = (e) => {
+    msgInput?.addEventListener("input", () => {
+      autoGrowInput();
+      updateSendState();
+    });
+
+    msgInput?.addEventListener("keydown", (e) => {
       if (e.key.length === 1) window.sounds?.typing?.();
-      if (e.key === "Enter" && !e.shiftKey && getSettings().enterToSend) {
+      if (e.key === "Enter" && !e.shiftKey && !e.isComposing && getSettings().enterToSend) {
         e.preventDefault();
-        $("btnSend").click();
+        sendCurrentMessage();
       }
-    };
+    });
+
+    autoGrowInput();
+    updateSendState();
+
+    /* ---------- Đóng modal bằng Escape ---------- */
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape") return;
+      if (!$("profileModal")?.classList.contains("hidden")) closeProfileModal();
+      if (!$("groupModal")?.classList.contains("hidden")) closeGroupModal();
+    });
   </script>
   <script type="module">
     import { sounds } from "./js/sounds.js";
@@ -982,3 +1385,4 @@
   </script>
 </body>
 </html>
+

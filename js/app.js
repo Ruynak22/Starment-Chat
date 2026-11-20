@@ -8,9 +8,11 @@ import { uploadChatAttachment, getAttachmentUrl, downloadAttachment, formatFileS
 import { setTyping } from "./presence.js";
 import { listenTyping } from "./typing.js";
 import { listenPresence } from "./presence.js";
+import { getSettings } from "./settings.js";
 
 const $ = (id) => document.getElementById(id);
 const LAST_CHAT_KEY = "starment_last_chat";
+const PINNED_KEY = (uid) => `pinnedFriends_${uid}`;
 let currentUser = null;
 let currentChatId = null;
 let currentChatPartnerUid = null;
@@ -31,6 +33,42 @@ let typingIdleTimer = null;
 let composerRO = null;
 let smoothScrollLockUntil = 0;
 let chatSessionId = 0;
+let typingStaleTimer = null;
+
+function getPinnedList(uid) {
+  if (!uid) return [];
+  try {
+    const list = JSON.parse(localStorage.getItem(PINNED_KEY(uid)) || "[]");
+    return Array.isArray(list) ? list.filter((x) => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function setPinnedList(uid, list) {
+  try { localStorage.setItem(PINNED_KEY(uid), JSON.stringify(list)); } catch { /* ignore */ }
+}
+
+function updatePinButton() {
+  const btn = $("btnPinChat");
+  if (!btn) return;
+  const mine = currentUser?.uid;
+  const on = !!(currentChatPartnerUid && mine && getPinnedList(mine).includes(currentChatPartnerUid));
+  btn.classList.toggle("is-on", on);
+  btn.setAttribute("aria-pressed", String(on));
+  btn.title = on ? "Bỏ ghim cuộc trò chuyện" : "Ghim cuộc trò chuyện";
+}
+
+function togglePin() {
+  if (!currentUser || !currentChatPartnerUid) return null;
+  const list = getPinnedList(currentUser.uid);
+  const has = list.includes(currentChatPartnerUid);
+  const next = has ? list.filter((x) => x !== currentChatPartnerUid) : [currentChatPartnerUid, ...list];
+  setPinnedList(currentUser.uid, next);
+  updatePinButton();
+  refreshConnections();
+  return !has;
+}
 
 const profileCache = new Map();
 const PROFILE_CACHE_TTL = 5 * 60 * 1000;
@@ -149,6 +187,17 @@ async function refreshConnections() {
   }
 
   const users = await getConnectedUsers(currentUser.uid);
+  const pinned = getPinnedList(currentUser.uid);
+  if (pinned.length) {
+    users.sort((a, b) => {
+      const ia = pinned.indexOf(a);
+      const ib = pinned.indexOf(b);
+      if (ia === -1 && ib === -1) return 0;
+      if (ia === -1) return 1;
+      if (ib === -1) return -1;
+      return ia - ib;
+    });
+  }
   const list = $("connections");
   if (!list) return;
   list.innerHTML = "";
@@ -158,6 +207,8 @@ async function refreshConnections() {
   users.forEach((uid) => {
     const li = document.createElement("li");
     li.className = "user-item";
+    li.dataset.uid = uid;
+    if (uid === currentChatPartnerUid) li.classList.add("active");
     const av = document.createElement("div");
     av.className = "avatar avatar-sm";
     av.textContent = "?";
@@ -537,6 +588,11 @@ async function openChat(otherUid) {
   const appView = $("appView");
   if (appView) appView.classList.add("chat-open");
 
+  document.querySelectorAll("#connections .user-item").forEach((li) => {
+    li.classList.toggle("active", li.dataset.uid === otherUid);
+  });
+  updatePinButton();
+
   const profile = await getProfileCached(otherUid);
   if (sessionId !== chatSessionId) return;
   window.app?.clearAttachment?.();
@@ -565,7 +621,9 @@ async function openChat(otherUid) {
   let firstSnapshot = true;
 
   // Mark messages as read when opening chat (không chặn việc hiển thị tin nhắn)
-  markMessagesAsRead(chatIdAtOpen, currentUser.uid).catch(() => {});
+  if (getSettings().readReceipts !== false) {
+    markMessagesAsRead(chatIdAtOpen, currentUser.uid).catch(() => {});
+  }
 
   const box = $("messages");
   box.innerHTML = "";
@@ -740,11 +798,30 @@ async function openChat(otherUid) {
   unsubscribeTyping = listenTyping(chatIdAtOpen, (data) => {
     const indicator = $("typing");
     if (!indicator) return;
-    const othersTyping = Object.keys(data).some((k) => k !== currentUser.uid && data[k]?.typing);
+    if (getSettings().typingIndicator === false) {
+      clearTimeout(typingStaleTimer);
+      indicator.textContent = "";
+      delete indicator.dataset.active;
+      return;
+    }
+    const now = Date.now();
+    const othersTyping = Object.keys(data).some((k) => {
+      if (k === currentUser.uid) return false;
+      const entry = data[k];
+      if (!entry?.typing) return false;
+      const at = Number(entry.updatedAt) || 0;
+      return !at || now - at < 8000;
+    });
     if (indicator.dataset.active === String(othersTyping)) return;
     indicator.dataset.active = String(othersTyping);
+    clearTimeout(typingStaleTimer);
     if (othersTyping) {
       indicator.innerHTML = '<span class="typing-text">Đang nhập</span><span class="typing-dots" aria-hidden="true"><i></i><i></i><i></i></span>';
+      // Dọn trạng thái nếu người kia ngừng gõ mà không gửi tín hiệu tắt.
+      typingStaleTimer = setTimeout(() => {
+        indicator.textContent = "";
+        delete indicator.dataset.active;
+      }, 8000);
     } else {
       indicator.textContent = "";
     }
@@ -753,6 +830,7 @@ async function openChat(otherUid) {
   const input = $("msgInput");
   if (input) {
     input.oninput = () => {
+      if (getSettings().typingIndicator === false) return;
       setTyping(currentChatId, currentUser.uid, true);
       clearTimeout(typingIdleTimer);
       typingIdleTimer = setTimeout(() => {
@@ -778,6 +856,8 @@ function closeChat() {
   }
   clearTimeout(typingIdleTimer);
   typingIdleTimer = null;
+  clearTimeout(typingStaleTimer);
+  typingStaleTimer = null;
   currentChatId = null;
   currentChatPartnerUid = null;
   replyingToMsg = null;
@@ -809,6 +889,17 @@ function closeChat() {
   if (composer) composer.classList.add("hidden");
   const nameEl = $("chatName");
   if (nameEl) nameEl.textContent = "Chọn một cuộc trò chuyện";
+  const statusEl = $("chatStatus");
+  if (statusEl) {
+    statusEl.textContent = "";
+    statusEl.classList.remove("online", "offline");
+  }
+  const avatarEl = $("chatAvatar");
+  if (avatarEl) avatarEl.textContent = "?";
+  const streakEl = $("chatStreak");
+  if (streakEl) streakEl.innerHTML = "";
+  document.querySelectorAll("#connections .user-item.active").forEach((li) => li.classList.remove("active"));
+  updatePinButton();
   const appView = $("appView");
   if (appView) appView.classList.remove("chat-open");
   requestAnimationFrame(trackComposerHeight);
@@ -901,4 +992,4 @@ window.addEventListener("requests:changed", () => {
   if (currentUser) refreshConnections();
 });
 
-window.app = { searchByUid, searchByName, sendFriendRequest, listIncomingRequests, respondRequest, sendMessage, uploadChatAttachment, openChat, currentUser: () => currentUser, currentChatId: () => currentChatId, presenceCache, updateStatusDot, cancelReply, startReply, scrollToBottom, openImageViewer, get replyingToMsg() { return replyingToMsg; } };
+window.app = { searchByUid, searchByName, sendFriendRequest, listIncomingRequests, respondRequest, sendMessage, uploadChatAttachment, openChat, currentUser: () => currentUser, currentChatId: () => currentChatId, currentChatPartnerUid: () => currentChatPartnerUid, closeChat, togglePin, presenceCache, updateStatusDot, cancelReply, startReply, scrollToBottom, openImageViewer, get replyingToMsg() { return replyingToMsg; } };

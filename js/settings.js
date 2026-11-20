@@ -19,10 +19,12 @@ const DEFAULTS = {
   notifDesktop: false,
   notifPreview: true,
   enterToSend: true,
-  compact: false
+  compact: false,
+  readReceipts: true,
+  typingIndicator: true
 };
 
-const BOOL_KEYS = ["notifInApp", "notifSound", "notifDesktop", "notifPreview", "enterToSend", "compact"];
+const BOOL_KEYS = ["notifInApp", "notifSound", "notifDesktop", "notifPreview", "enterToSend", "compact", "readReceipts", "typingIndicator"];
 
 let settings = { ...DEFAULTS };
 let systemQuery = null;

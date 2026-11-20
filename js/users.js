@@ -150,8 +150,37 @@ export async function updateUsername(uid, raw) {
   });
 }
 
-/* Cập nhật avatar (yêu cầu Firebase Storage đã bật). */
-export async function updateAvatar(uid, file) {
+/* ============================================================
+   CHẶN NGƯỜI DÙNG (block/unblock)
+   Dữ liệu nằm trong users/{uid}.blockedUids — không đổi cấu trúc.
+   ============================================================ */
+export async function getBlockedUids(uid) {
+  const cur = await getDoc(doc(db, "users", uid));
+  return cur.exists() ? (cur.data().blockedUids || []) : [];
+}
+
+export async function isBlocked(uid, otherUid) {
+  const list = await getBlockedUids(uid);
+  return list.includes(otherUid);
+}
+
+export async function blockUser(uid, otherUid) {
+  const cur = await getDoc(doc(db, "users", uid));
+  const list = cur.exists() ? (cur.data().blockedUids || []) : [];
+  if (!list.includes(otherUid)) {
+    list.push(otherUid);
+    await updateDoc(doc(db, "users", uid), { blockedUids: list });
+  }
+}
+
+export async function unblockUser(uid, otherUid) {
+  const cur = await getDoc(doc(db, "users", uid));
+  const list = cur.exists() ? (cur.data().blockedUids || []) : [];
+  const next = list.filter((x) => x !== otherUid);
+  await updateDoc(doc(db, "users", uid), { blockedUids: next });
+}
+
+/* Cập nhật avatar (yêu cầu Firebase Storage đã bật). */export async function updateAvatar(uid, file) {
   if (!file.type.startsWith("image/")) throw new Error("Invalid MIME");
   if (file.size > 2 * 1024 * 1024) throw new Error("File too large");
   const r = ref(storage, `avatars/${uid}/${Date.now()}_${file.name}`);
