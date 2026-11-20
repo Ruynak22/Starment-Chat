@@ -6,13 +6,6 @@ import {
   ref, uploadBytes, getDownloadURL
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-storage.js";
 
-/* ============================================================
-   USERNAME (@)
-   - Chuẩn hoá: bỏ @ đầu, cắt khoảng trắng, chuyển thành chữ thường.
-   - Định dạng: 3–20 ký tự, bắt đầu bằng chữ, chỉ chữ/số/dấu gạch dưới.
-   - Tính duy nhất được cài ở tầng client (kiểm tra trước) VÀ tầng
-     Security Rules (usernames/{name} chỉ được tạo 1 lần).
-   ============================================================ */
 export const USERNAME_MIN = 3;
 export const USERNAME_MAX = 20;
 const USERNAME_RE = /^[a-z][a-z0-9_]{2,19}$/;
@@ -121,7 +114,22 @@ export async function updateUsername(uid, raw) {
     throw new Error("Username đã được sử dụng.");
   }
 
-const cur = await getDoc(doc(db, "users", uid));
+  // Kiểm tra giới hạn đổi username: chỉ được đổi 1 lần mỗi 10 ngày.
+  const prof = await getUserProfile(uid);
+  if (prof && prof.username && prof.usernameChangedAt) {
+    const lastChange = prof.usernameChangedAt.toDate ? prof.usernameChangedAt.toDate() : new Date(prof.usernameChangedAt);
+    const now = new Date();
+    const diffDays = (now - lastChange) / (1000 * 60 * 60 * 24);
+    if (diffDays < 10 && prof.username === uname) {
+      // Không đổi gì cả
+      return;
+    }
+    if (diffDays < 10) {
+      throw new Error("Chỉ được đổi username 1 lần mỗi 10 ngày.");
+    }
+  }
+
+  const cur = await getDoc(doc(db, "users", uid));
   const old = cur.exists() ? cur.data().usernameLower : "";
 
   if (old === uname) {
@@ -152,7 +160,7 @@ const cur = await getDoc(doc(db, "users", uid));
   await updateDoc(doc(db, "users", uid), {
     username: uname,
     usernameLower: uname,
-    usernameChangedAt: Date.now()
+    usernameChangedAt: serverTimestamp()
   });
 }
 
@@ -185,11 +193,4 @@ export async function unblockUser(uid, otherUid) {
   await updateDoc(doc(db, "users", uid), { blockedUids: next });
 }
 export async function updateAvatar(uid, file) {
-  if (!file.type.startsWith("image/")) throw new Error("Invalid MIME");
-  if (file.size > 2 * 1024 * 1024) throw new Error("File too large");
-  const r = ref(storage, `avatars/${uid}/${Date.now()}_${file.name}`);
-  await uploadBytes(r, file);
-  const url = await getDownloadURL(r);
-  await updateDoc(doc(db, "users", uid), { photoURL: url });
-  return url;
 }

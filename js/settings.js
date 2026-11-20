@@ -24,7 +24,8 @@ const DEFAULTS = {
   sidebarCollapsed: false,
   readReceipts: true,
   typingIndicator: true,
-  animations: true
+  animations: true,
+  language: "vi"
 };
 
 const BOOL_KEYS = ["notifInApp", "notifSound", "notifDesktop", "notifPreview", "enterToSend", "compact", "sidebarCollapsed", "readReceipts", "typingIndicator", "animations"];
@@ -226,8 +227,16 @@ export function initSettings() {
     });
   });
 
-  document.getElementById("settingsLanguage")?.addEventListener("change", (e) => {
-    updateSetting("language", e.target.value);
+  // Ngôn ngữ
+  const langSelect = document.getElementById("settingsLanguage");
+  if (langSelect) {
+    langSelect.addEventListener("change", () => {
+      updateSetting("language", langSelect.value);
+    });
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !settingsModal()?.classList.contains("hidden")) closeSettings();
   });
 
   // Chủ đề "Hệ thống" thay đổi theo cài đặt của máy.

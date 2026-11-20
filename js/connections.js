@@ -2,7 +2,7 @@ import { db } from "./firebase-config.js";
 import {
   collection, doc, getDoc, setDoc, query, where, getDocs, updateDoc, serverTimestamp, orderBy, limit, writeBatch, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
-import { normalizeUsername, normalizeSearchText } from "./users.js";
+import { normalizeUsername, normalizeSearchText, isBlocked } from "./users.js";
 
 export const MAX_CONNECTIONS = 50;
 
@@ -43,7 +43,15 @@ export async function searchByName(name) {
 
 export async function sendFriendRequest(fromUid, toUid) {
   if (fromUid === toUid) throw new Error("Cannot request self");
-  
+
+  // Chặn nếu một trong hai đã block đối phương.
+  if (await isBlocked(fromUid, toUid)) {
+    throw new Error("Đối phương đã bị chắn. Không thể gửi lời mời.");
+  }
+  if (await isBlocked(toUid, fromUid)) {
+    throw new Error("Bạn đã chắn người này. Hãy bỏ chắn trước khi kết bạn.");
+  }
+
   // Check connection limit for both users
   const fromConnections = await getConnectedUsers(fromUid);
   if (fromConnections.length >= MAX_CONNECTIONS) {
@@ -53,7 +61,7 @@ export async function sendFriendRequest(fromUid, toUid) {
   if (toConnections.length >= MAX_CONNECTIONS) {
     throw new Error(`Người này đã đạt giới hạn ${MAX_CONNECTIONS} kết nối.`);
   }
-  
+
   const id = `${fromUid}_${toUid}`;
   const reverse = `${toUid}_${fromUid}`;
   const existing = await getDoc(doc(db, "friendRequests", id));
@@ -105,5 +113,30 @@ export async function getConnectedUsers(uid) {
   const others = new Set();
   sent.forEach(d => others.add(d.data().toUid));
   received.forEach(d => others.add(d.data().fromUid));
-  return [...others];
+
+  // Loại bỏ những người đã bị block.
+  const blocked = new Set(await getBlockedUidsSafe(uid));
+  return [...others].filter((u) => !blocked.has(u));
+}
+
+async function getBlockedUidsSafe(uid) {
+  try {
+    const { getBlockedUids } = await import("./users.js");
+    return await getBlockedUids(uid);
+  } catch {
+    return [];
+  }
+}
+
+/* Hủy kết nối (xóa lời mời đã chấp nhận). */
+export async function removeConnection(uid, otherUid) {
+  const batch = writeBatch(db);
+  // Xóa cả 2 hướng (nếu tồn tại)
+  const id1 = `${uid}_${otherUid}`;
+  const id2 = `${otherUid}_${uid}`;
+  [id1, id2].forEach((id) => {
+    const ref = doc(db, "friendRequests", id);
+    batch.delete(ref);
+  });
+  await batch.commit();
 }
