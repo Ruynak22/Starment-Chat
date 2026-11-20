@@ -3,7 +3,7 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.2/f
 import { ensureUserProfile, getUserProfile, blockUser, unblockUser, isBlocked, getBlockedUids } from "./users.js";
 import { setPresence, setOffline, formatLastSeen } from "./presence.js";
 import { searchByUid, searchByName, sendFriendRequest, listIncomingRequests, respondRequest, getConnectedUsers, MAX_CONNECTIONS, removeConnection } from "./connections.js";
-import { chatIdFor, sendMessage, listenMessages, markMessagesAsRead, listenMessageStatus, listenChat, getStreak, STREAK_MILESTONES, deleteMessage, retractMessage, pinMessage, unpinMessage, getPinnedMessages, pinChat, unpinChat, isChatPinned, createGroupChat, updateGroupChat, addMemberToGroup, removeMemberFromGroup } from "./messages.js";
+import { chatIdFor, sendMessage, listenMessages, markMessagesAsRead, listenMessageStatus, listenChat, getStreak, STREAK_MILESTONES, deleteMessage, deleteMessageForMe, retractMessage, recallMessage, pinMessage, unpinMessage, getPinnedMessages, pinChat, unpinChat, isChatPinned, createGroupChat, updateGroupChat, addMemberToGroup, removeMemberFromGroup } from "./messages.js";
 import { uploadChatAttachment, getAttachmentUrl, downloadAttachment, formatFileSize } from "./storage.js";
 import { setTyping } from "./presence.js";
 import { listenTyping } from "./typing.js";
@@ -40,6 +40,9 @@ let typingStaleTimer = null;
 let currentPartnerLabel = "";
 let presenceUid = null;
 let activeVoiceAudio = null;
+let pinnedMsgIds = new Set();
+let pinnedRenderId = 0;
+let messageMenuCleanup = null;
 
 function getPinnedList(uid) {
   if (!uid) return [];
@@ -442,39 +445,152 @@ $("msgInput")?.addEventListener("focus", () => {
 });
 trackComposerHeight();
 
-function attachLongPress(el, mine, msg) {
+function hideMessageMenu() {
+  const menu = $("msgMenu");
+  if (!menu) return;
+  menu.classList.add("hidden");
+  menu.replaceChildren();
+  if (messageMenuCleanup) {
+    messageMenuCleanup();
+    messageMenuCleanup = null;
+  }
+}
+
+function showMessageMenu(msg, x, y) {
+  hideMessageMenu();
+  const menu = $("msgMenu");
+  if (!menu || !currentUser) return;
+  const mine = msg.senderUid === currentUser.uid;
+  const items = [];
+
+  items.push({ icon: "↩️", label: "Trả lời", run: () => startReply(msg) });
+
+  if (typeof msg.text === "string" && msg.text.trim()) {
+    items.push({
+      icon: "⧉",
+      label: "Sao chép",
+      run: async () => {
+        try {
+          await navigator.clipboard.writeText(msg.text);
+          notify("Đã sao chép tin nhắn.");
+        } catch {
+          notify("Không sao chép được.");
+        }
+      }
+    });
+  }
+
+  if (currentChatId && !currentChatId.startsWith("group_")) {
+    const pinned = pinnedMsgIds.has(msg.id);
+    items.push({
+      icon: pinned ? "📌" : "📍",
+      label: pinned ? "Bỏ ghim" : "Ghim tin nhắn",
+      run: async () => {
+        try {
+          if (pinned) await unpinMessage(currentChatId, msg.id);
+          else await pinMessage(currentChatId, msg.id, currentUser.uid);
+          notify(pinned ? "Đã bỏ ghim." : "Đã ghim tin nhắn.");
+        } catch (err) {
+          notify(err?.message || "Không cập nhật được tin nhắn ghim.");
+        }
+      }
+    });
+  }
+
+  if (mine) {
+    items.push({
+      icon: "↩",
+      label: "Thu hồi",
+      danger: true,
+      run: async () => {
+        if (!confirm("Thu hồi tin nhắn này? Mọi người sẽ thấy thông báo đã thu hồi.")) return;
+        try {
+          await recallMessage(currentChatId, msg.id);
+          notify("Đã thu hồi tin nhắn.");
+        } catch (err) {
+          notify(err?.message || "Không thu hồi được.");
+        }
+      }
+    });
+  }
+
+  items.push({
+    icon: "🗑",
+    label: mine ? "Xóa tin nhắn" : "Xóa khỏi cuộc trò chuyện",
+    danger: true,
+    run: async () => {
+      if (!confirm("Xóa tin nhắn này khỏi cuộc trò chuyện của bạn?")) return;
+      try {
+        await deleteMessageForMe(currentChatId, msg.id, currentUser.uid);
+        document.querySelector(`.msg[data-msg-id="${msg.id}"], .msg-system[data-msg-id="${msg.id}"]`)?.remove();
+        notify("Đã xóa tin nhắn.");
+      } catch (err) {
+        notify(err?.message || "Không xóa được.");
+      }
+    }
+  });
+
+  items.forEach((item) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "msg-menu-item" + (item.danger ? " danger" : "");
+    btn.setAttribute("role", "menuitem");
+    const icon = document.createElement("span");
+    icon.className = "msg-menu-icon";
+    icon.textContent = item.icon;
+    const label = document.createElement("span");
+    label.textContent = item.label;
+    btn.append(icon, label);
+    btn.onclick = (e) => { e.stopPropagation(); hideMessageMenu(); item.run(); };
+    menu.appendChild(btn);
+  });
+
+  menu.classList.remove("hidden");
+  const rect = menu.getBoundingClientRect();
+  menu.style.left = `${Math.max(8, Math.min(x, window.innerWidth - rect.width - 8))}px`;
+  menu.style.top = `${Math.max(8, Math.min(y, window.innerHeight - rect.height - 8))}px`;
+
+  const onPointer = (e) => { if (!menu.contains(e.target)) hideMessageMenu(); };
+  const onKey = (e) => { if (e.key === "Escape") hideMessageMenu(); };
+  const messagesBox = $("messages");
+  const onScroll = () => hideMessageMenu();
+  document.addEventListener("pointerdown", onPointer, true);
+  document.addEventListener("keydown", onKey, true);
+  messagesBox?.addEventListener("scroll", onScroll, { passive: true });
+  messageMenuCleanup = () => {
+    document.removeEventListener("pointerdown", onPointer, true);
+    document.removeEventListener("keydown", onKey, true);
+    messagesBox?.removeEventListener("scroll", onScroll);
+  };
+}
+
+function attachMessageMenu(el, msg) {
   let timer = null;
-  const showActions = () => {
-    const actions = el.querySelector(".msg-actions");
-    if (actions) actions.classList.add("show");
-  };
-  const hideActions = () => {
-    const actions = el.querySelector(".msg-actions");
-    if (actions) actions.classList.remove("show");
-  };
-  el.addEventListener("touchstart", (e) => {
-    timer = setTimeout(() => {
-      if (mine) return; // chỉ tin nhắn đến mới có hành động trả lời
-      navigator.vibrate?.(50);
-      showActions();
-      timer = null;
-    }, 500);
-  }, { passive: true });
-  const clearTimer = () => {
-    if (timer) { clearTimeout(timer); timer = null; }
-  };
-  el.addEventListener("touchend", clearTimer, { passive: true });
-  el.addEventListener("touchmove", clearTimer, { passive: true });
-  el.addEventListener("touchcancel", clearTimer, { passive: true });
+  let startPoint = null;
   el.addEventListener("contextmenu", (e) => {
     e.preventDefault();
-    if (mine) return;
-    showActions();
+    showMessageMenu(msg, e.clientX, e.clientY);
   });
-  // Ẩn actions khi click ngoài
-  document.addEventListener("click", (e) => {
-    if (!el.contains(e.target)) hideActions();
-  }, { once: true });
+  el.addEventListener("touchstart", (e) => {
+    const touch = e.touches[0];
+    if (!touch) return;
+    startPoint = { x: touch.clientX, y: touch.clientY };
+    timer = setTimeout(() => {
+      timer = null;
+      if (!startPoint) return;
+      navigator.vibrate?.(40);
+      showMessageMenu(msg, startPoint.x, startPoint.y);
+      startPoint = null;
+    }, 450);
+  }, { passive: true });
+  const cancel = () => { clearTimeout(timer); timer = null; startPoint = null; };
+  el.addEventListener("touchend", cancel, { passive: true });
+  el.addEventListener("touchcancel", cancel, { passive: true });
+  el.addEventListener("touchmove", (e) => {
+    const touch = e.touches[0];
+    if (!touch || !startPoint) return;
+    if (Math.abs(touch.clientX - startPoint.x) > 10 || Math.abs(touch.clientY - startPoint.y) > 10) cancel();
+  }, { passive: true });
 }
 
 function fileIconFor(mime, name) {
@@ -705,6 +821,7 @@ async function removeCurrentConnection() {
 async function openChat(otherUid) {
   const sessionId = ++chatSessionId;
   stopActiveVoice();
+  hideMessageMenu();
   currentChatId = chatIdFor(currentUser.uid, otherUid);
   const chatIdAtOpen = currentChatId;
   currentChatPartnerUid = otherUid;
@@ -769,6 +886,7 @@ async function openChat(otherUid) {
       currentStreak = chatData.streak || { count: 0, lastDate: null, milestones: [] };
       updateStreakDisplay();
     }
+    renderPinnedMessages(chatIdAtOpen, box);
   });
 
   let firstSnapshot = true;
@@ -815,6 +933,25 @@ async function openChat(otherUid) {
     const isInitialBatch = firstSnapshot;
     for (const m of newMsgs) {
       const mine = m.senderUid === currentUser.uid;
+      if (Array.isArray(m.deletedFor) && m.deletedFor.includes(currentUser.uid)) continue;
+
+      if (m.recalled || m.deleted || m.retracted) {
+        const notice = document.createElement("div");
+        notice.className = "msg-system";
+        notice.dataset.msgId = m.id;
+        const icon = document.createElement("span");
+        icon.className = "msg-system-icon";
+        icon.textContent = m.recalled || m.retracted ? "↩" : "🗑";
+        const label = document.createElement("span");
+        const recalled = m.recalled || m.retracted;
+        label.textContent = mine
+          ? (recalled ? "Bạn đã thu hồi một tin nhắn" : "Bạn đã xóa một tin nhắn")
+          : (recalled ? "Tin nhắn đã được thu hồi" : "Tin nhắn đã được xóa");
+        notice.append(icon, label);
+        box.appendChild(notice);
+        continue;
+      }
+
       const bubble = document.createElement("div");
       bubble.className = "msg " + (mine ? "outgoing" : "incoming");
       if (!isInitialBatch) bubble.classList.add("msg-new");
@@ -855,34 +992,23 @@ async function openChat(otherUid) {
         }
       }
 
-      if (Array.isArray(m.deletedFor) && m.deletedFor.includes(currentUser.uid)) {
-        continue;
+      let hasMedia = false;
+      if (m.attachment) {
+        renderAttachment(bubble, m.attachment);
+        hasMedia = true;
+      } else if (m.imageUrl) {
+        bubble.appendChild(createMessageImage(m.imageUrl, "Ảnh"));
+        hasMedia = true;
       }
 
-      let hasMedia = false;
-      if (m.recalled) {
-        const recalledEl = document.createElement("div");
-        recalledEl.className = "msg-recalled";
-        recalledEl.textContent = "🚫 Tin nhắn đã được thu hồi";
-        bubble.appendChild(recalledEl);
-      } else {
-        if (m.attachment) {
-          renderAttachment(bubble, m.attachment);
-          hasMedia = true;
-        } else if (m.imageUrl) {
-          bubble.appendChild(createMessageImage(m.imageUrl, "Ảnh"));
-          hasMedia = true;
-        }
-
-        if (m.text) {
-          if (hasMedia) {
-            const caption = document.createElement("div");
-            caption.className = "msg-text";
-            caption.textContent = m.text;
-            bubble.appendChild(caption);
-          } else {
-            bubble.appendChild(document.createTextNode(m.text));
-          }
+      if (m.text) {
+        if (hasMedia) {
+          const caption = document.createElement("div");
+          caption.className = "msg-text";
+          caption.textContent = m.text;
+          bubble.appendChild(caption);
+        } else {
+          bubble.appendChild(document.createTextNode(m.text));
         }
       }
 
@@ -896,122 +1022,21 @@ async function openChat(otherUid) {
         bubble.appendChild(statusSpan);
       }
 
-      // Actions
-      const actions = document.createElement("div");
-      actions.className = "msg-actions";
-      if (!mine) {
-        const replyBtn = document.createElement("button");
-        replyBtn.className = "msg-action-btn";
-        replyBtn.textContent = "↩️ Trả lời";
-        replyBtn.onclick = (e) => { e.stopPropagation(); startReply(m); };
-        actions.appendChild(replyBtn);
-        // Pin button
-        const pinBtn = document.createElement("button");
-        pinBtn.className = "msg-action-btn";
-        pinBtn.textContent = "📌 Ghim";
-        pinBtn.onclick = async (e) => {
-          e.stopPropagation();
-          try {
-            await pinMessage(currentChatId, m.id, currentUser.uid);
-            notify("Đã ghim tin nhắn.");
-          } catch (err) {
-            notify(err?.message || "Không ghim được.");
-          }
-        };
-        actions.appendChild(pinBtn);
-
-        // Delete button (for sender)
-        const delBtn = document.createElement("button");
-        delBtn.className = "msg-action-btn";
-        delBtn.textContent = "🗑️ Xóa";
-        delBtn.onclick = async (e) => {
-          e.stopPropagation();
-          if (confirm("Xóa tin nhắn này vĩnh viễn?")) {
-            try {
-              await deleteMessage(currentChatId, m.id, currentUser.uid);
-              notify("Đã xóa tin nhắn.");
-            } catch (err) {
-              notify(err?.message || "Không xóa được.");
-            }
-          }
-        };
-        actions.appendChild(delBtn);
-
-        // Retract button (everyone)
-        const reBtn = document.createElement("button");
-        reBtn.className = "msg-action-btn";
-        reBtn.textContent = "↩️ Thu hồi";
-        reBtn.onclick = async (e) => {
-          e.stopPropagation();
-          try {
-            await retractMessage(currentChatId, m.id);
-            notify("Đã thu hồi tin nhắn.");
-          } catch (err) {
-            notify(err?.message || "Không thu hồi được.");
-          }
-        };
-        actions.appendChild(reBtn);
-
-        bubble.appendChild(actions);
-      }
-      if (mine && !m.recalled) {
-        const recallBtn = document.createElement("button");
-        recallBtn.className = "msg-action-btn";
-        recallBtn.textContent = "↩️ Thu hồi";
-        recallBtn.onclick = async (e) => {
-          e.stopPropagation();
-          try {
-            const { recallMessage } = await import("./messages.js");
-            await recallMessage(currentChatId, m.id);
-            notify("Đã thu hồi tin nhắn");
-          } catch (err) { notify(err?.message || "Không thu hồi được"); }
-        };
-        actions.appendChild(recallBtn);
-      }
-      const delBtn = document.createElement("button");
-      delBtn.className = "msg-action-btn";
-      delBtn.textContent = "🗑️ Xóa";
-      delBtn.onclick = async (e) => {
+      const more = document.createElement("button");
+      more.type = "button";
+      more.className = "msg-more";
+      more.textContent = "⋯";
+      more.title = "Tùy chọn tin nhắn";
+      more.setAttribute("aria-label", "Tùy chọn tin nhắn");
+      more.onclick = (e) => {
         e.stopPropagation();
-        try {
-          const { deleteMessageForMe } = await import("./messages.js");
-          await deleteMessageForMe(currentChatId, m.id, currentUser.uid);
-          bubble.remove();
-          notify("Đã xóa tin nhắn");
-        } catch (err) { notify(err?.message || "Không xóa được"); }
+        const rect = more.getBoundingClientRect();
+        showMessageMenu(m, rect.left, rect.bottom + 6);
       };
-      actions.appendChild(delBtn);
+      bubble.appendChild(more);
 
-      const pinBtn = document.createElement("button");
-      pinBtn.className = "msg-action-btn";
-      pinBtn.textContent = "📌 Ghim";
-      pinBtn.onclick = async (e) => {
-        e.stopPropagation();
-        try {
-          const { pinMessage } = await import("./messages.js");
-          await pinMessage(currentChatId, m.id, currentUser.uid);
-          notify("Đã ghim tin nhắn");
-        } catch (err) { notify(err?.message || "Không ghim được"); }
-      };
-      actions.appendChild(pinBtn);
-
-      bubble.appendChild(actions);
-
-      // Handle deleted/retracted messages
-      if (m.deleted) {
-        const notice = document.createElement("span");
-        notice.className = "msg-deleted";
-        notice.textContent = "Đã xóa tin nhắn";
-        bubble.appendChild(notice);
-      } else if (m.retracted) {
-        const notice = document.createElement("span");
-        notice.className = "msg-deleted";
-        notice.textContent = "Đã thu hồi tin nhắn";
-        bubble.appendChild(notice);
-      } else {
-        box.appendChild(bubble);
-        attachLongPress(bubble, mine, m);
-      }
+      box.appendChild(bubble);
+      attachMessageMenu(bubble, m);
     }
 
     if (!isInitialBatch && !stickToBottom) {
@@ -1115,6 +1140,8 @@ async function openChat(otherUid) {
 async function openGroupChat(groupId, groupName) {
   const sessionId = ++chatSessionId;
   stopActiveVoice();
+  hideMessageMenu();
+  pinnedMsgIds = new Set();
   currentChatId = groupId;
   currentChatPartnerUid = null;
   currentPartnerLabel = "";
@@ -1170,6 +1197,22 @@ async function openGroupChat(groupId, groupName) {
     for (const m of newMsgs) {
       if (Array.isArray(m.deletedFor) && m.deletedFor.includes(currentUser.uid)) continue;
       const mine = m.senderUid === currentUser.uid;
+      if (m.recalled || m.deleted || m.retracted) {
+        const notice = document.createElement("div");
+        notice.className = "msg-system";
+        notice.dataset.msgId = m.id;
+        const icon = document.createElement("span");
+        icon.className = "msg-system-icon";
+        icon.textContent = m.recalled || m.retracted ? "↩" : "🗑";
+        const label = document.createElement("span");
+        const recalled = m.recalled || m.retracted;
+        label.textContent = mine
+          ? (recalled ? "Bạn đã thu hồi một tin nhắn" : "Bạn đã xóa một tin nhắn")
+          : (recalled ? "Tin nhắn đã được thu hồi" : "Tin nhắn đã được xóa");
+        notice.append(icon, label);
+        box.appendChild(notice);
+        continue;
+      }
       const bubble = document.createElement("div");
       bubble.className = "msg " + (mine ? "outgoing" : "incoming");
       bubble.classList.add("msg-new");
@@ -1179,17 +1222,23 @@ async function openGroupChat(groupId, groupName) {
       const sp = resolvedProfiles.get(m.senderUid);
       sender.textContent = mine ? "Bạn" : (sp?.displayName || m.senderUid.slice(0, 8));
       bubble.appendChild(sender);
-      if (m.recalled) {
-        const r = document.createElement("div");
-        r.className = "msg-recalled";
-        r.textContent = "🚫 Tin nhắn đã được thu hồi";
-        bubble.appendChild(r);
-      } else {
-        if (m.attachment) renderAttachment(bubble, m.attachment);
-        else if (m.imageUrl) bubble.appendChild(createMessageImage(m.imageUrl, "Ảnh"));
-        if (m.text) bubble.appendChild(document.createTextNode(m.text));
-      }
+      if (m.attachment) renderAttachment(bubble, m.attachment);
+      else if (m.imageUrl) bubble.appendChild(createMessageImage(m.imageUrl, "Ảnh"));
+      if (m.text) bubble.appendChild(document.createTextNode(m.text));
+
+      const more = document.createElement("button");
+      more.type = "button";
+      more.className = "msg-more";
+      more.textContent = "⋯";
+      more.title = "Tùy chọn tin nhắn";
+      more.onclick = (e) => {
+        e.stopPropagation();
+        const rect = more.getBoundingClientRect();
+        showMessageMenu(m, rect.left, rect.bottom + 6);
+      };
+      bubble.appendChild(more);
       box.appendChild(bubble);
+      attachMessageMenu(bubble, m);
     }
     if (stickToBottom) requestAnimationFrame(() => { if (currentChatId === groupId) scrollToBottom("auto"); });
   });
@@ -1199,6 +1248,8 @@ async function openGroupChat(groupId, groupName) {
 }
 function closeChat() {
   stopActiveVoice();
+  hideMessageMenu();
+  pinnedMsgIds = new Set();
   const closingChatId = currentChatId;
   if (closingChatId && currentUser) {
     try { setTyping(closingChatId, currentUser.uid, false); } catch { /* ignore */ }
@@ -1333,23 +1384,54 @@ function updateStreakDisplay() {
 }
 
 async function renderPinnedMessages(chatId, box) {
-  const pinnedIds = await getPinnedMessages(chatId);
-  if (pinnedIds.length === 0) return;
-  // Lấy tin messages theo id
+  const renderId = ++pinnedRenderId;
+  const existing = document.querySelector(".pinned-bar");
+  if (existing) existing.remove();
+
+  const pinnedIds = currentChatId === chatId ? await getPinnedMessages(chatId) : [];
+  pinnedMsgIds = new Set(pinnedIds);
+  if (!pinnedIds.length || currentChatId !== chatId || !box?.parentNode) return;
+
   const { getDoc, doc } = await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js");
-  const pinnedContainer = document.createElement("div");
-  pinnedContainer.className = "pinned-bar";
+  const bar = document.createElement("div");
+  bar.className = "pinned-bar";
+  const heading = document.createElement("div");
+  heading.className = "pinned-bar-heading";
+  heading.textContent = `📌 ${pinnedIds.length} tin nhắn đã ghim`;
+  bar.appendChild(heading);
+
   for (const msgId of pinnedIds) {
     const snap = await getDoc(doc(db, "chats", chatId, "messages", msgId));
     if (!snap.exists()) continue;
     const m = { id: snap.id, ...snap.data() };
     const item = document.createElement("div");
     item.className = "pinned-item";
-    item.innerHTML = `<span>📌</span><span>${m.text || "Tin nhắn đã ghim"}</span>`;
+    const preview = document.createElement("span");
+    preview.className = "pinned-preview";
+    preview.textContent = attachmentPreviewText(m) || "Tin nhắn đã ghim";
+    const unpin = document.createElement("button");
+    unpin.type = "button";
+    unpin.className = "pinned-unpin";
+    unpin.textContent = "✕";
+    unpin.title = "Bỏ ghim";
+    unpin.setAttribute("aria-label", "Bỏ ghim");
+    unpin.onclick = async (e) => {
+      e.stopPropagation();
+      try {
+        await unpinMessage(chatId, m.id);
+        notify("Đã bỏ ghim.");
+      } catch (err) {
+        notify(err?.message || "Không bỏ ghim được.");
+      }
+    };
+    item.append(preview, unpin);
     item.onclick = () => scrollToMessage(m.id);
-    pinnedContainer.appendChild(item);
+    bar.appendChild(item);
   }
-  box.parentNode.insertBefore(pinnedContainer, box);
+
+  if (renderId !== pinnedRenderId || currentChatId !== chatId) return;
+  document.querySelector(".pinned-bar")?.remove();
+  if (bar.children.length > 1 && box?.parentNode) box.parentNode.insertBefore(bar, box);
 }
 
 function getStatusText(status) {
