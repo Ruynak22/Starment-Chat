@@ -897,7 +897,6 @@ async function openChat(otherUid) {
   }
 
   box.innerHTML = "";
-  box.innerHTML = "";
   renderedMsgIds.clear();
   stickToBottom = true;
   unseenWhileAway = 0;
@@ -906,6 +905,7 @@ async function openChat(otherUid) {
 
   unsubscribeMessages = listenMessages(chatIdAtOpen, async (msgs) => {
     if (currentChatId !== chatIdAtOpen || sessionId !== chatSessionId) return;
+    updateRenderedTimes(box, msgs);
     const newMsgs = msgs.filter(m => !renderedMsgIds.has(m.id));
     if (newMsgs.length === 0) {
       if (firstSnapshot) {
@@ -1012,14 +1012,20 @@ async function openChat(otherUid) {
         }
       }
 
-      // Add status indicator for outgoing messages
-      if (mine && !m.recalled) {
+      // Sent time + status indicator for outgoing messages
+      if (mine) {
+        const meta = document.createElement("div");
+        meta.className = "msg-meta msg-meta-out";
+        meta.appendChild(createMessageTime(m));
         const statusSpan = document.createElement("span");
         statusSpan.className = "msg-status";
         if ((m.status || "sent") === "seen") statusSpan.classList.add("seen");
         statusSpan.dataset.msgId = m.id;
         statusSpan.textContent = getStatusText(m.status || "sent");
-        bubble.appendChild(statusSpan);
+        meta.appendChild(statusSpan);
+        bubble.appendChild(meta);
+      } else {
+        bubble.appendChild(createMessageTime(m, "msg-time-in"));
       }
 
       const more = document.createElement("button");
@@ -1184,6 +1190,7 @@ async function openGroupChat(groupId, groupName) {
 
   unsubscribeMessages = listenMessages(groupId, async (msgs) => {
     if (currentChatId !== groupId || sessionId !== chatSessionId) return;
+    updateRenderedTimes(box, msgs);
     const newMsgs = msgs.filter(m => !renderedMsgIds.has(m.id));
     if (newMsgs.length === 0) return;
     newMsgs.forEach((m) => renderedMsgIds.add(m.id));
@@ -1225,6 +1232,7 @@ async function openGroupChat(groupId, groupName) {
       if (m.attachment) renderAttachment(bubble, m.attachment);
       else if (m.imageUrl) bubble.appendChild(createMessageImage(m.imageUrl, "Ảnh"));
       if (m.text) bubble.appendChild(document.createTextNode(m.text));
+      bubble.appendChild(createMessageTime(m, mine ? "msg-time-out" : "msg-time-in"));
 
       const more = document.createElement("button");
       more.type = "button";
@@ -1441,6 +1449,41 @@ function getStatusText(status) {
     case "sent": return "Đã gửi";
     default: return "Đã gửi";
   }
+}
+
+function formatMessageTime(createdAt) {
+  if (!createdAt) return "";
+  try {
+    const ms = typeof createdAt.toMillis === "function" ? createdAt.toMillis()
+      : typeof createdAt.toDate === "function" ? createdAt.toDate().getTime()
+      : createdAt instanceof Date ? createdAt.getTime()
+      : typeof createdAt === "number" ? createdAt
+      : NaN;
+    if (!Number.isFinite(ms) || ms <= 0) return "";
+    return new Date(ms).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+  } catch {
+    return "";
+  }
+}
+
+function createMessageTime(m, extraClass = "") {
+  const time = document.createElement("span");
+  time.className = "msg-time" + (extraClass ? " " + extraClass : "");
+  time.dataset.msgId = m.id;
+  time.textContent = formatMessageTime(m.createdAt);
+  return time;
+}
+
+function updateRenderedTimes(box, msgs) {
+  if (!box) return;
+  const emptyTimes = box.querySelectorAll(".msg-time:empty");
+  if (!emptyTimes.length) return;
+  const byId = new Map(msgs.map((m) => [m.id, m]));
+  emptyTimes.forEach((el) => {
+    const m = byId.get(el.dataset.msgId);
+    const time = m && formatMessageTime(m.createdAt);
+    if (time) el.textContent = time;
+  });
 }
 
 window.addEventListener("requests:changed", () => {
