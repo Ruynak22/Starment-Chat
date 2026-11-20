@@ -649,8 +649,8 @@ async function openChat(otherUid) {
   }
 
   // Hiển thị các tin đã ghim
+  const box = $("messages");
   renderPinnedMessages(chatIdAtOpen, box);
-
   // Listen to partner's presence
   unsubscribePresence = listenPresence(otherUid, (presence) => {
     presenceCache.set(otherUid, presence || { online: false });
