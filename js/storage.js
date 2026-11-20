@@ -7,6 +7,7 @@ const MAX_IMAGE_DIM = 1600;                     // cạnh dài tối đa sau khi
 const IMAGE_QUALITY = 0.82;
 const IMAGE_RECOMPRESS_ABOVE = 300 * 1024;
 const URL_CACHE_MAX = 20;
+const INLINE_MAX_SIZE = 700 * 1024;
 
 let storageUsable = true;
 const urlCache = new Map();
@@ -230,11 +231,16 @@ export async function uploadChatAttachment(chatId, file, onProgress) {
     try {
       await saveToRealtimeDb(chatId, prepared, attachment, (p) => report(0.15 + p * 0.7));
     } catch (err) {
-      // Nếu chưa deploy rules cho RTDB, ảnh nhỏ vẫn có thể gửi kèm trong tin nhắn.
-      if (attachment.kind === "image" && prepared.size <= 600 * 1024) {
-        attachment.dataUrl = await fileToDataUrl(prepared);
+      // Storage/RTDB chưa deploy rules → gửi kèm dữ liệu ngay trong tin nhắn.
+      // Firestore giới hạn ~1MB/tài liệu nên chỉ nhúng được tệp đủ nhỏ.
+      if (prepared.size <= INLINE_MAX_SIZE) {
+        try {
+          attachment.dataUrl = await fileToDataUrl(prepared);
+        } catch {
+          throw new Error("Không đọc được tệp để gửi kèm. Vui lòng thử lại.");
+        }
       } else {
-        throw new Error("Không tải được tệp lên máy chủ. Hãy deploy database.rules.json rồi thử lại.");
+        throw new Error("Không tải được tệp lên máy chủ. Hãy deploy storage.rules và database.rules.json rồi thử lại.");
       }
     }
   }
