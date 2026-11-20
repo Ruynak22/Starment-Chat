@@ -177,8 +177,6 @@ export async function deleteMessageForMe(chatId, msgId, uid) {
   });
 }
 
-
-
 export async function getStreak(chatId) {
   const chatRef = doc(db, "chats", chatId);
   const snap = await getDoc(chatRef);
@@ -190,10 +188,6 @@ export async function getStreak(chatId) {
    NHÓM
    - Tạo chat nhóm với nhiều thành viên.
    ============================================================ */
-
-
-
-
 export async function createGroupChat(members, name) {
   const sorted = [...members].sort();
   const chatId = "group_" + sorted.join("_");

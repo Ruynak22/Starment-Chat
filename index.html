@@ -45,9 +45,7 @@
               <span class="hero-tag">Nhắn tin tức thời</span>
             </div>
           </div>
-        </div>
 
-        <div>
           <h1 class="auth-hero-title">Trò chuyện <em>mượt mà</em><br />trong một không gian tinh tế.</h1>
           <p class="auth-hero-desc">
             Kết nối bạn bè, nhắn tin theo thời gian thực và chia sẻ tệp — tất cả
@@ -98,7 +96,7 @@
             <p id="status" class="status-text" role="status" aria-live="polite"></p>
           </form>
 
-          <!-- Đăng ký: đúng 4 trường -->
+          <!-- Đăng ký -->
           <form id="registerForm" class="auth-form hidden" autocomplete="on" novalidate>
             <label class="field">
               <span>Username</span>
@@ -178,14 +176,14 @@
 
         <div class="header-actions">
           <button type="button" id="btnSidebarToggle" class="btn btn-icon" title="Ẩn/hiện thanh bên" aria-label="Ẩn/hiện thanh bên">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/><path d="M15 9l-3 3 3 3"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M15 9l-3 3 3 3"/></svg>
           </button>
           <button type="button" id="btnNotifications" class="btn btn-icon" title="Thông báo" aria-label="Thông báo">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 1 0-12 0c0 5-2 6-2 6h16s-2-1-2-6"/><path d="M10.3 20a2 2 0 0 0 3.4 0"/></svg>
             <span id="notifBadge" class="notif-badge hidden">0</span>
           </button>
           <button type="button" id="btnSettings" class="btn btn-icon" title="Cài đặt" aria-label="Cài đặt">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1.03-1.56V3a2 2 0 1 1 4 0v.1A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9v.03a1.7 1.7 0 0 0 1.56 1.03H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 .97z"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9v.03a1.7 1.7 0 0 0 1.56 1.03H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 .97z"/></svg>
           </button>
           <button type="button" id="btnLogout" class="btn btn-icon" title="Đăng xuất" aria-label="Đăng xuất">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v9"/><path d="M6.4 5.6a8 8 0 1 0 11.2 0"/></svg>
@@ -244,15 +242,6 @@
           <button type="button" id="btnBlockChat" class="btn btn-icon" title="Chặn" aria-label="Chặn" aria-pressed="false">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M6.2 17.8 17.8 6.2"/></svg>
           </button>
-        </div>
-        <div class="chat-header-actions">
-          <button id="btnPinChat" class="btn btn-icon" title="Ghim cuộc trò chuyện" aria-label="Ghim">
-            📌
-          </button>
-          <button id="btnBlockChat" class="btn btn-icon" title="Chặn" aria-label="Chặn">
-            🚫
-          </button>
-        </div>
         </div>
       </header>
 
@@ -495,7 +484,7 @@
               <span class="setting-desc">Hiện thông báo ở chuông và danh sách</span>
             </div>
             <label class="switch">
-              <input type="checkbox" data-setting="compact" aria-label="Giao diện gọn" />
+              <input type="checkbox" data-setting="notifInApp" aria-label="Thông báo trong ứng dụng" />
               <span class="switch-track"></span>
             </label>
           </div>
@@ -505,17 +494,7 @@
               <span class="setting-desc">Phát âm báo khi có tin nhắn mới</span>
             </div>
             <label class="switch">
-              <input type="checkbox" data-setting="readReceipts" aria-label="Xác nhận đã đọc" />
-              <span class="switch-track"></span>
-            </label>
-          </div>
-          <div class="setting-row">
-            <div class="setting-label">
-              <strong>Xem trước nội dung</strong>
-              <span class="setting-desc">Hiện nội dung tin nhắn trong thông báo</span>
-            </div>
-            <label class="switch">
-              <input type="checkbox" data-setting="notifPreview" aria-label="Xem trước nội dung" />
+              <input type="checkbox" data-setting="notifSound" aria-label="Âm thanh thông báo" />
               <span class="switch-track"></span>
             </label>
           </div>
@@ -608,38 +587,6 @@
       const btn = e.target.closest(".btn");
       if (!btn || btn.disabled) return;
       const rect = btn.getBoundingClientRect();
-      const size = Math.max(rect.width, rect.height);
-      const r = document.createElement("span");
-      r.className = "ripple";
-      r.style.width = r.style.height = size + "px";
-      r.style.left = (e.clientX - rect.left - size / 2) + "px";
-      r.style.top = (e.clientY - rect.top - size / 2) + "px";
-      btn.appendChild(r);
-      setTimeout(() => r.remove(), 600);
-    }, { capture: true });
-
-    const $ = (id) => document.getElementById(id);
-
-    /* ---------- Nền sao động màn đăng nhập ---------- */
-    const starsBox = $("stars");
-    if (starsBox) {
-      for (let i = 0; i < 60; i++) {
-        const s = document.createElement("span");
-        const sz = Math.random() < 0.15 ? 2 : 1;
-        s.style.width = s.style.height = sz + "px";
-        s.style.left = Math.random() * 100 + "%";
-        s.style.top = Math.random() * 100 + "%";
-        s.style.animationDelay = (Math.random() * 4) + "s";
-        s.style.animationDuration = (2 + Math.random() * 3) + "s";
-        starsBox.appendChild(s);
-      }
-    }
-
-    /* ---------- Hiệu ứng ripple khi bấm nút ---------- */
-    document.addEventListener("click", (e) => {
-      const btn = e.target.closest(".btn");
-      if (!btn || btn.disabled) return;
-      const rect = btn.getBoundingClientRect();
       if (!rect.width || !rect.height) return;
       const size = Math.max(rect.width, rect.height);
       const r = document.createElement("span");
@@ -650,6 +597,8 @@
       btn.appendChild(r);
       setTimeout(() => r.remove(), 620);
     }, { capture: true });
+
+    const $ = (id) => document.getElementById(id);
 
     /* ---------- Toast & status ---------- */
     const toast = $("toast");
@@ -667,7 +616,7 @@
       el.textContent = m || "";
       el.classList.remove("success", "error");
       if (type) el.classList.add(type);
-      notify(m);
+      if (m) notify(m);
     };
     const status = (m) => setStatus($("status"), m);
 
@@ -717,10 +666,12 @@
       const email = ($("email")?.value || "").trim();
       const password = $("password")?.value || "";
       setStatus($("status"), "");
+
       if (!email || !password) {
         setStatus($("status"), "Vui lòng nhập email và mật khẩu.", "error");
         return;
       }
+
       const btn = $("btnLogin");
       const originalText = btn.textContent;
       btn.disabled = true;
@@ -838,7 +789,6 @@
 
     await setPersistence(auth, browserLocalPersistence);
 
-    await setPersistence(auth, browserLocalPersistence);
     /* ---------- Chuyển view theo trạng thái đăng nhập ---------- */
     let myProfile = null;
     onAuthStateChanged(auth, async (u) => {
@@ -1450,4 +1400,3 @@
   </script>
 </body>
 </html>
-

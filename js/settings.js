@@ -21,14 +21,13 @@ const DEFAULTS = {
   notifPreview: true,
   enterToSend: true,
   compact: false,
-  sidebarCollapsed: false,
   readReceipts: true,
   typingIndicator: true,
   animations: true,
-  language: "vi"
+  sidebarCollapsed: false
 };
 
-const BOOL_KEYS = ["notifInApp", "notifSound", "notifDesktop", "notifPreview", "enterToSend", "compact", "sidebarCollapsed", "readReceipts", "typingIndicator", "animations"];
+const BOOL_KEYS = ["notifInApp", "notifSound", "notifDesktop", "notifPreview", "enterToSend", "compact", "readReceipts", "typingIndicator", "animations", "sidebarCollapsed"];
 
 let settings = { ...DEFAULTS };
 let systemQuery = null;

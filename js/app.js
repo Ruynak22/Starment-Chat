@@ -1,4 +1,4 @@
-import { auth } from "./firebase-config.js";
+import { auth, db } from "./firebase-config.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
 import { ensureUserProfile, getUserProfile, blockUser, unblockUser, isBlocked, getBlockedUids } from "./users.js";
 import { setPresence } from "./presence.js";
@@ -13,7 +13,6 @@ import { getSettings } from "./settings.js";
 const $ = (id) => document.getElementById(id);
 const LAST_CHAT_KEY = "starment_last_chat";
 const PINNED_KEY = (uid) => `pinnedFriends_${uid}`;
-const PINNED_CHATS_KEY = "starment_pinned_chats";
 let currentUser = null;
 let currentChatId = null;
 let currentChatPartnerUid = null;
@@ -50,6 +49,15 @@ function setPinnedList(uid, list) {
   try { localStorage.setItem(PINNED_KEY(uid), JSON.stringify(list)); } catch { /* ignore */ }
 }
 
+function updatePinButton() {
+  const btn = $("btnPinChat");
+  if (!btn) return;
+  const mine = currentUser?.uid;
+  const on = !!(currentChatPartnerUid && mine && getPinnedList(mine).includes(currentChatPartnerUid));
+  btn.classList.toggle("is-on", on);
+  btn.setAttribute("aria-pressed", String(on));
+  btn.title = on ? "Bỏ ghim cuộc trò chuyện" : "Ghim cuộc trò chuyện";
+}
 
 function togglePin() {
   if (!currentUser || !currentChatPartnerUid) return null;
@@ -180,22 +188,26 @@ async function refreshConnections() {
 
   const users = await getConnectedUsers(currentUser.uid);
   const blocked = await getBlockedUids(currentUser.uid);
-  const filteredUsers = users.filter((u) => !blocked.includes(u));
+  const pinned = getPinnedList(currentUser.uid);
+  let filteredUsers = users.filter((u) => !blocked.includes(u));
+  if (pinned.length) {
+    filteredUsers.sort((a, b) => {
+      const ia = pinned.indexOf(a);
+      const ib = pinned.indexOf(b);
+      if (ia === -1 && ib === -1) return 0;
+      if (ia === -1) return 1;
+      if (ib === -1) return -1;
+      return ia - ib;
+    });
+  }
   const list = $("connections");
   if (!list) return;
   list.innerHTML = "";
   if (filteredUsers.length === 0) {
     list.innerHTML = '<li class="user-empty">Chưa có kết nối. Hãy tìm bạn bè ở trên.</li>';
+    window.dispatchEvent(new CustomEvent("connections:changed"));
+    return;
   }
-  const pinnedKey = "pinnedFriends_" + currentUser.uid;
-  let pinned = [];
-  try { pinned = JSON.parse(localStorage.getItem(pinnedKey) || "[]"); } catch {}
-  filteredUsers.sort((a, b) => {
-    const ia = pinned.indexOf(a), ib = pinned.indexOf(b);
-    const pa = ia === -1 ? 9999 : ia;
-    const pb = ib === -1 ? 9999 : ib;
-    return pa - pb;
-  });
   filteredUsers.forEach((uid) => {
     const li = document.createElement("li");
     li.className = "user-item";
@@ -553,7 +565,7 @@ function updateChatHeaderStatus(presence) {
   }
 }
 
-function updatePinButton() {
+function updatePinButtonById() {
   const btn = $("btnPinChat");
   if (!btn || !currentChatPartnerUid) return;
   const pinned = isChatPinned(currentChatPartnerUid);
@@ -569,7 +581,7 @@ async function togglePinChat() {
   } else {
     await pinChat(currentChatPartnerUid);
   }
-  updatePinButton();
+  updatePinButtonById();
   refreshConnections();
 }
 
@@ -1247,4 +1259,33 @@ window.addEventListener("requests:changed", () => {
   if (currentUser) refreshConnections();
 });
 
-window.app = { searchByUid, searchByName, sendFriendRequest, listIncomingRequests, respondRequest, sendMessage, deleteMessage, retractMessage, pinMessage, unpinMessage, uploadChatAttachment, openChat, openGroupChat, currentUser: () => currentUser, currentChatId: () => currentChatId, currentChatPartnerUid: () => currentChatPartnerUid, closeChat, togglePin, togglePinChat, toggleBlockChat, presenceCache, updateStatusDot, cancelReply, startReply, scrollToBottom, openImageViewer, get replyingToMsg() { return replyingToMsg; } };
+window.app = {
+  searchByUid,
+  searchByName,
+  sendFriendRequest,
+  listIncomingRequests,
+  respondRequest,
+  sendMessage,
+  deleteMessage,
+  retractMessage,
+  pinMessage,
+  unpinMessage,
+  isChatPinned,
+  createGroupChat,
+  uploadChatAttachment,
+  openChat,
+  openGroupChat,
+  openChatByChatId,
+  currentUser: () => currentUser,
+  currentChatId: () => currentChatId,
+  currentChatPartnerUid: () => currentChatPartnerUid,
+  presenceCache,
+  updateStatusDot,
+  cancelReply,
+  startReply,
+  scrollToBottom,
+  openImageViewer,
+  closeChat,
+  togglePin,
+  get replyingToMsg() { return replyingToMsg; }
+};
