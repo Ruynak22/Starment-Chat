@@ -8,7 +8,7 @@ import { uploadChatAttachment, getAttachmentUrl, downloadAttachment, formatFileS
 import { setTyping } from "./presence.js";
 import { listenTyping } from "./typing.js";
 import { listenPresence } from "./presence.js";
-import { getSettings } from "./settings.js";
+import { getSettings } from "./settings.js";`nimport { db } from "./firebase-config.js";
 
 const $ = (id) => document.getElementById(id);
 const LAST_CHAT_KEY = "starment_last_chat";

@@ -139,11 +139,11 @@ export async function updateUsername(uid, raw) {
     return;
   }
 
-  const check = await canChangeUsername(uid);
-  if (!check.ok) {
-    const days = Math.ceil(check.remainingMs / (24 * 60 * 60 * 1000));
-    throw new Error(`Username chỉ được đổi 1 lần mỗi 10 ngày. Còn ${days} ngày.`);
-  }
+
+
+
+
+
 
   // Xoá username cũ trong registry (nếu thuộc về mình)
   if (old) {
