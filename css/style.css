@@ -6,7 +6,8 @@
 /* ---------- 1. Design tokens ---------- */
 :root {
   --font-sans: "Inter", "SF Pro Text", -apple-system, BlinkMacSystemFont,
-    "Segoe UI Variable", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    "Segoe UI Variable", "Segoe UI", Roboto, "Noto Sans", "Ubuntu", "Cantarell",
+    "Helvetica Neue", Arial, "Liberation Sans", sans-serif;
   --font-mono: "SFMono-Regular", "Cascadia Mono", "JetBrains Mono", Consolas, monospace;
 
   --radius-xl: 24px;
@@ -154,6 +155,8 @@ html, body {
   -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) transparent;
 }
 
 body {
@@ -167,8 +170,12 @@ body {
   background-attachment: fixed;
 }
 
-button, a, .user-item { touch-action: manipulation; }
-button { font-family: inherit; }
+button, a, .user-item { touch-action: manipulation; -webkit-touch-callout: none; }
+button {
+  font-family: inherit;
+  -webkit-appearance: none;
+  appearance: none;
+}
 
 .hidden { display: none !important; }
 .grow { flex: 1; min-height: 0; }
@@ -322,7 +329,14 @@ body.no-animations *::after {
   background: var(--panel-2);
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
-select.input { padding-right: 2rem; cursor: pointer; }
+select.input {
+  padding-right: 2rem;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%239aa7b8' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right .7rem center;
+  background-size: 14px;
+}
 
 .field {
   display: flex;
@@ -504,6 +518,17 @@ select.input { padding-right: 2rem; cursor: pointer; }
   border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-faint); background-clip: content-box; }
+
+.sidebar-scroll,
+.side-block.grow .user-list,
+.search-results,
+.pinned-bar,
+.messages,
+.modal-body,
+.notif-list,
+.auth-view {
+  -webkit-overflow-scrolling: touch;
+}
 
 /* Toast */
 .toast {
@@ -2091,6 +2116,7 @@ body.viewer-open { overflow: hidden; }
     border-radius: 0;
     box-shadow: none;
     padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
   }
   .app-view.sidebar-collapsed .sidebar { transform: none; opacity: 1; width: 100%; margin: 0; }
 
@@ -2109,6 +2135,7 @@ body.viewer-open { overflow: hidden; }
   .btn.chat-back { display: inline-flex; }
 
   .chat-header { padding: .55rem .7rem; }
+  .header-actions .btn-icon { width: 38px; height: 38px; }
   .messages { padding: .8rem .8rem .3rem; }
   .msg { max-width: 86%; font-size: .93rem; }
   .composer { padding: .5rem .55rem .55rem; }
@@ -2145,8 +2172,27 @@ body.viewer-open { overflow: hidden; }
   .auth-card { padding: 1.6rem 1.3rem; }
 }
 
+@media (max-width: 720px) and (orientation: landscape) {
+  .sidebar {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  .chat {
+    left: env(safe-area-inset-left);
+    right: env(safe-area-inset-right);
+  }
+}
+
+@media (max-width: 720px) and (max-height: 500px) and (orientation: landscape) {
+  .chat-header { padding: .35rem .6rem; }
+  .messages { padding-top: .4rem; }
+  .typing { display: none; }
+  .composer { padding-top: .35rem; padding-bottom: max(.35rem, env(safe-area-inset-bottom)); }
+  .msg-input { max-height: 84px; }
+}
+
 @media (max-width: 400px) {
-  .header-actions .btn-icon { width: 32px; height: 32px; }
+  .header-actions .btn-icon { width: 36px; height: 36px; }
   .msg { max-width: 88%; }
   .auth-card { padding: 1.4rem 1.1rem; }
   .settings-body { gap: 1rem; }
@@ -2174,6 +2220,26 @@ body.viewer-open { overflow: hidden; }
   }
   .modal-backdrop,
   .image-viewer-backdrop { background: rgba(0, 0, 0, .72); }
+}
+
+@supports not (background: color-mix(in srgb, red 50%, transparent)) {
+  :root {
+    --tint-84: rgba(20, 25, 34, .84);
+    --tint-55: rgba(20, 25, 34, .55);
+    --tint-45: rgba(20, 25, 34, .45);
+    --tint-40: rgba(20, 25, 34, .4);
+  }
+  html[data-theme="light"] {
+    --tint-84: rgba(255, 255, 255, .84);
+    --tint-55: rgba(255, 255, 255, .55);
+    --tint-45: rgba(255, 255, 255, .45);
+    --tint-40: rgba(255, 255, 255, .4);
+  }
+  .auth-card { background: var(--tint-84); }
+  .chat-header { background: var(--tint-55); }
+  .pinned-bar { background: var(--tint-40); }
+  .composer { background: var(--tint-45); }
+  .composer:focus-within .composer-shell { border-color: var(--accent); }
 }
 
 @media (prefers-reduced-motion: reduce) {
