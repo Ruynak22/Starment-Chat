@@ -1,6 +1,6 @@
 import { db } from "./firebase-config.js";
 import {
-  collection, doc, addDoc, query, orderBy, limit, getDocs, onSnapshot, serverTimestamp, updateDoc, writeBatch, getDoc, setDoc
+  collection, doc, addDoc, query, orderBy, limit, getDocs, onSnapshot, serverTimestamp, updateDoc, writeBatch, getDoc, setDoc, arrayUnion
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 
 export function chatIdFor(a, b) {
@@ -162,10 +162,203 @@ async function updateStreak(chatId, senderUid) {
   await updateDoc(chatRef, { streak });
 }
 
+export async function recallMessage(chatId, msgId) {
+  await updateDoc(doc(db, "chats", chatId, "messages", msgId), {
+    recalled: true,
+    text: null,
+    imageUrl: null,
+    attachment: null
+  });
+}
+
+export async function deleteMessageForMe(chatId, msgId, uid) {
+  await updateDoc(doc(db, "chats", chatId, "messages", msgId), {
+    deletedFor: arrayUnion(uid)
+  });
+}
+
+export async function pinMessage(chatId, msgId, uid) {
+  const chatRef = doc(db, "chats", chatId);
+  await updateDoc(chatRef, { pinnedMessageIds: arrayUnion(msgId) });
+}
+
+export async function unpinMessage(chatId, msgId) {
+  const chatRef = doc(db, "chats", chatId);
+  const snap = await getDoc(chatRef);
+  const list = snap.exists() ? (snap.data().pinnedMessageIds || []) : [];
+  await updateDoc(chatRef, { pinnedMessageIds: list.filter((x) => x !== msgId) });
+}
+
 export async function getStreak(chatId) {
   const chatRef = doc(db, "chats", chatId);
   const snap = await getDoc(chatRef);
   if (!snap.exists()) return { count: 0, lastDate: null, milestones: [] };
   return snap.data().streak || { count: 0, lastDate: null, milestones: [] };
+}
+
+/* ============================================================
+   NHÓM
+   - Tạo chat nhóm với nhiều thành viên.
+   ============================================================ */
+export async function pinChat(partnerUid) {
+  const list = loadPinnedChats();
+  if (!list.includes(partnerUid)) {
+    list.push(partnerUid);
+    savePinnedChats(list);
+  }
+}
+
+export async function unpinChat(partnerUid) {
+  const list = loadPinnedChats().filter((x) => x !== partnerUid);
+  savePinnedChats(list);
+}
+
+export function isChatPinned(partnerUid) {
+  return loadPinnedChats().includes(partnerUid);
+}
+
+export function getPinnedChatsList() {
+  return loadPinnedChats();
+}
+
+export async function createGroupChat(members, name) {
+  const sorted = [...members].sort();
+  const chatId = "group_" + sorted.join("_");
+  const chatRef = doc(db, "chats", chatId);
+  const snap = await getDoc(chatRef);
+  if (!snap.exists()) {
+    await setDoc(chatRef, {
+      members: sorted,
+      name: name || "Nhóm",
+      isGroup: true,
+      createdAt: serverTimestamp(),
+      streak: { count: 0, lastMutualDate: null, lastMessageDates: {}, status: "active", milestones: [] },
+      pinnedMessages: []
+    });
+  }
+  return chatId;
+}
+
+export async function updateGroupChat(chatId, updates) {
+  const chatRef = doc(db, "chats", chatId);
+  await updateDoc(chatRef, updates);
+}
+
+export async function addMemberToGroup(chatId, uid) {
+  const chatRef = doc(db, "chats", chatId);
+  const snap = await getDoc(chatRef);
+  if (!snap.exists()) return;
+  const members = snap.data().members || [];
+  if (!members.includes(uid)) {
+    members.push(uid);
+    await updateDoc(chatRef, { members });
+  }
+}
+
+export async function removeMemberFromGroup(chatId, uid) {
+  const chatRef = doc(db, "chats", chatId);
+  const snap = await getDoc(chatRef);
+  if (!snap.exists()) return;
+  const members = (snap.data().members || []).filter((m) => m !== uid);
+  await updateDoc(chatRef, { members });
+}
+
+export async function deleteMessage(chatId, msgId, uid) {
+  const ref = doc(db, "chats", chatId, "messages", msgId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) throw new Error("Tin nhắn không tồn tại.");
+  if (snap.data().senderUid !== uid) throw new Error("Chỉ người gửi mới được xóa.");
+  await updateDoc(ref, {
+    text: "",
+    imageUrl: null,
+    attachment: null,
+    deletedAt: serverTimestamp(),
+    deleted: true
+  });
+}
+
+export async function retractMessage(chatId, msgId) {
+  const ref = doc(db, "chats", chatId, "messages", msgId);
+  await updateDoc(ref, {
+    text: "",
+    imageUrl: null,
+    attachment: null,
+    retractedAt: serverTimestamp(),
+    retracted: true
+  });
+}
+
+/* ============================================================
+   GHIM TIN NHẮN
+   ============================================================ */
+export async function pinMessage(chatId, msgId, uid) {
+  const chatRef = doc(db, "chats", chatId);
+  const chatSnap = await getDoc(chatRef);
+  if (!chatSnap.exists()) throw new Error("Cuộc trò chuyện không tồn tại.");
+  const data = chatSnap.data();
+  const pinned = data.pinnedMessages || [];
+  if (!pinned.includes(msgId)) {
+    pinned.push(msgId);
+  }
+  await updateDoc(chatRef, { pinnedMessages: pinned });
+}
+
+export async function unpinMessage(chatId, msgId) {
+  const chatRef = doc(db, "chats", chatId);
+  const chatSnap = await getDoc(chatRef);
+  if (!chatSnap.exists()) return;
+  const data = chatSnap.data();
+  const pinned = (data.pinnedMessages || []).filter((id) => id !== msgId);
+  await updateDoc(chatRef, { pinnedMessages: pinned });
+}
+
+export async function getPinnedMessages(chatId) {
+  const chatRef = doc(db, "chats", chatId);
+  const snap = await getDoc(chatRef);
+  if (!snap.exists()) return [];
+  return snap.data().pinnedMessages || [];
+}
+
+/* ============================================================
+   GHIM KẾT NỐI (chat pin) — lưu local để ưu tiên hiển thị.
+   ============================================================ */
+const PINNED_CHATS_KEY = "starment_pinned_chats";
+
+function loadPinnedChats() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(PINNED_CHATS_KEY) || "[]");
+    return Array.isArray(raw) ? raw : [];
+  } catch {
+    return [];
+  }
+}
+
+function savePinnedChats(list) {
+  try {
+    localStorage.setItem(PINNED_CHATS_KEY, JSON.stringify(list));
+  } catch {
+    /* ignore */
+  }
+}
+
+export function isChatPinned(partnerUid) {
+  return loadPinnedChats().includes(partnerUid);
+}
+
+export async function pinChat(partnerUid) {
+  const list = loadPinnedChats();
+  if (!list.includes(partnerUid)) {
+    list.push(partnerUid);
+    savePinnedChats(list);
+  }
+}
+
+export async function unpinChat(partnerUid) {
+  const list = loadPinnedChats().filter((x) => x !== partnerUid);
+  savePinnedChats(list);
+}
+
+export function getPinnedChatsList() {
+  return loadPinnedChats();
 }
 

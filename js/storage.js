@@ -2,7 +2,7 @@ import { auth, storage, rtdb } from "./firebase-config.js";
 import { ref as storageRef, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-storage.js";
 import { ref as rtdbRef, push, set, get } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-database.js";
 
-export const MAX_FILE_SIZE = 5 * 1024 * 1024;   // 5MB cho mỗi tệp
+export const MAX_FILE_SIZE = 10 * 1024 * 1024;   // 10MB cho mỗi tệp
 const MAX_IMAGE_DIM = 1600;                     // cạnh dài tối đa sau khi nén
 const IMAGE_QUALITY = 0.82;
 const IMAGE_RECOMPRESS_ABOVE = 300 * 1024;
