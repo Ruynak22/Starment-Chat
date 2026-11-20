@@ -290,19 +290,24 @@ export async function getPinnedMessages(chatId) {
    GHIM KẾT NỐI (chat pin) — lưu local để ưu tiên hiển thị.
    ============================================================ */
 const PINNED_CHATS_KEY = "starment_pinned_chats";
+let _pinnedChatsCache = null;
 
 function loadPinnedChats() {
+  if (_pinnedChatsCache) return _pinnedChatsCache;
   try {
     const raw = JSON.parse(localStorage.getItem(PINNED_CHATS_KEY) || "[]");
-    return Array.isArray(raw) ? raw : [];
+    _pinnedChatsCache = Array.isArray(raw) ? raw : [];
+    return _pinnedChatsCache;
   } catch {
-    return [];
+    _pinnedChatsCache = [];
+    return _pinnedChatsCache;
   }
 }
 
 function savePinnedChats(list) {
   try {
     localStorage.setItem(PINNED_CHATS_KEY, JSON.stringify(list));
+    _pinnedChatsCache = Array.isArray(list) ? list : null;
   } catch {
     /* ignore */
   }
