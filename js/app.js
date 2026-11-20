@@ -9,6 +9,7 @@ import { setTyping } from "./presence.js";
 import { listenTyping } from "./typing.js";
 import { listenPresence } from "./presence.js";
 import { getSettings } from "./settings.js";
+import { formatDuration as formatVoiceDuration } from "./voice.js";
 import { db } from "./firebase-config.js";
 
 const $ = (id) => document.getElementById(id);
@@ -38,6 +39,7 @@ let chatSessionId = 0;
 let typingStaleTimer = null;
 let currentPartnerLabel = "";
 let presenceUid = null;
+let activeVoiceAudio = null;
 
 function getPinnedList(uid) {
   if (!uid) return [];
@@ -493,9 +495,9 @@ function attachmentPreviewText(msg) {
   if (!msg) return "";
   if (msg.imageUrl) return "📷 Ảnh";
   if (msg.attachment) {
-    return msg.attachment.kind === "image"
-      ? "📷 Ảnh"
-      : "📎 " + (msg.attachment.name || "Tệp");
+    if (msg.attachment.kind === "image") return "📷 Ảnh";
+    if (msg.attachment.kind === "audio") return "🎤 Tin nhắn thoại";
+    return "📎 " + (msg.attachment.name || "Tệp");
   }
   return msg.text || "";
 }
@@ -539,6 +541,89 @@ function createFileCard(attachment) {
   return card;
 }
 
+function stopActiveVoice() {
+  if (!activeVoiceAudio) return;
+  try { activeVoiceAudio.pause(); } catch { /* ignore */ }
+  activeVoiceAudio = null;
+}
+
+function createVoiceCard(attachment) {
+  const card = document.createElement("div");
+  card.className = "voice-card";
+
+  const play = document.createElement("button");
+  play.type = "button";
+  play.className = "voice-play";
+  play.textContent = "▶";
+  play.title = "Phát tin nhắn thoại";
+
+  const track = document.createElement("button");
+  track.type = "button";
+  track.className = "voice-track";
+  track.title = "Chọn vị trí phát";
+  const fill = document.createElement("span");
+  fill.className = "voice-track-fill";
+  track.appendChild(fill);
+
+  const time = document.createElement("span");
+  time.className = "voice-time-label";
+  time.textContent = formatVoiceDuration(attachment.duration || 0);
+
+  const audio = new Audio();
+  audio.preload = "metadata";
+
+  audio.addEventListener("loadedmetadata", () => {
+    if (!attachment.duration && Number.isFinite(audio.duration)) {
+      time.textContent = formatVoiceDuration(audio.duration);
+    }
+  });
+  audio.addEventListener("timeupdate", () => {
+    if (!Number.isFinite(audio.duration) || audio.duration <= 0) return;
+    fill.style.width = `${(audio.currentTime / audio.duration) * 100}%`;
+    time.textContent = formatVoiceDuration(audio.currentTime);
+  });
+  audio.addEventListener("play", () => {
+    if (activeVoiceAudio && activeVoiceAudio !== audio) {
+      try { activeVoiceAudio.pause(); } catch { /* ignore */ }
+    }
+    activeVoiceAudio = audio;
+    play.textContent = "❚❚";
+  });
+  audio.addEventListener("pause", () => { play.textContent = "▶"; });
+  audio.addEventListener("ended", () => {
+    fill.style.width = "0%";
+    play.textContent = "▶";
+    time.textContent = formatVoiceDuration(attachment.duration || audio.duration || 0);
+  });
+  audio.addEventListener("error", () => {
+    play.textContent = "!";
+    play.disabled = true;
+    time.textContent = "—";
+  });
+
+  play.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (!audio.src || play.disabled) return;
+    if (audio.paused) {
+      audio.play().catch(() => { window.notify?.("Không phát được tin nhắn thoại."); });
+    } else {
+      audio.pause();
+    }
+  });
+  track.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (!Number.isFinite(audio.duration) || audio.duration <= 0) return;
+    const rect = track.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / (rect.width || 1)));
+    audio.currentTime = ratio * audio.duration;
+  });
+
+  getAttachmentUrl(attachment).then((url) => { audio.src = url; }).catch(() => { play.disabled = true; });
+
+  card.append(play, track, time);
+  return card;
+}
+
 function renderAttachment(bubble, attachment) {
   if (!attachment) return;
   if (attachment.kind === "image") {
@@ -549,6 +634,8 @@ function renderAttachment(bubble, attachment) {
     }).catch(() => {
       img.replaceWith(createFileCard(attachment));
     });
+  } else if (attachment.kind === "audio") {
+    bubble.appendChild(createVoiceCard(attachment));
   } else {
     bubble.appendChild(createFileCard(attachment));
   }
@@ -617,6 +704,7 @@ async function removeCurrentConnection() {
 
 async function openChat(otherUid) {
   const sessionId = ++chatSessionId;
+  stopActiveVoice();
   currentChatId = chatIdFor(currentUser.uid, otherUid);
   const chatIdAtOpen = currentChatId;
   currentChatPartnerUid = otherUid;
@@ -1026,6 +1114,7 @@ async function openChat(otherUid) {
 
 async function openGroupChat(groupId, groupName) {
   const sessionId = ++chatSessionId;
+  stopActiveVoice();
   currentChatId = groupId;
   currentChatPartnerUid = null;
   currentPartnerLabel = "";
@@ -1109,6 +1198,7 @@ async function openGroupChat(groupId, groupName) {
   if (back) back.onclick = () => closeChat();
 }
 function closeChat() {
+  stopActiveVoice();
   const closingChatId = currentChatId;
   if (closingChatId && currentUser) {
     try { setTyping(closingChatId, currentUser.uid, false); } catch { /* ignore */ }

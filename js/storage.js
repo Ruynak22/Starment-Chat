@@ -183,7 +183,7 @@ async function saveToRealtimeDb(chatId, file, attachment, onProgress) {
 
 /**
  * Tải một tệp/ảnh lên và trả về metadata để gửi kèm tin nhắn:
- * { kind: "image"|"file", name, size, mime, width?, height?, url|null, mediaPath|null }
+ * { kind: "image"|"audio"|"file", name, size, mime, width?, height?, url|null, mediaPath|null }
  * onProgress nhận giá trị 0..1 để hiển thị thanh tiến trình.
  */
 export async function uploadChatAttachment(chatId, file, onProgress) {
@@ -205,8 +205,13 @@ export async function uploadChatAttachment(chatId, file, onProgress) {
     throw new Error("Tệp rỗng hoặc không đọc được.");
   }
 
+  const preparedMime = prepared.type || "";
   const attachment = {
-    kind: prepared.type && prepared.type.startsWith("image/") ? "image" : "file",
+    kind: preparedMime.startsWith("image/")
+      ? "image"
+      : preparedMime.startsWith("audio/")
+        ? "audio"
+        : "file",
     name: prepared.name || file.name || "file",
     size: prepared.size,
     mime: prepared.type || "application/octet-stream",

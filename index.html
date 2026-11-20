@@ -260,6 +260,15 @@
 
       <div id="composer" class="composer hidden">
         <div class="composer-shell">
+          <div id="voiceBar" class="voice-bar hidden" aria-live="polite">
+            <span id="voiceDot" class="voice-dot" aria-hidden="true"></span>
+            <span id="voiceTime" class="voice-elapsed">0:00</span>
+            <span id="voiceHint" class="voice-hint">Đang ghi âm…</span>
+            <button type="button" id="btnVoiceCancel" class="voice-btn voice-cancel">Huỷ</button>
+            <button type="button" id="btnVoiceStop" class="voice-btn voice-stop">Dừng</button>
+            <button type="button" id="btnVoiceSend" class="voice-btn voice-send hidden">Gửi</button>
+          </div>
+
           <div id="attachmentBar" class="attachment-bar hidden" aria-live="polite">
             <div class="attachment-thumb">
               <img id="imgPreview" alt="" />
@@ -281,6 +290,9 @@
             <input id="imgInput" class="input-img" type="file" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar,.7z" />
             <button id="btnAttach" class="btn btn-icon" title="Đính kèm ảnh hoặc tệp" aria-label="Đính kèm ảnh hoặc tệp" type="button">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5 12.6 19.9a5 5 0 0 1-7.1-7.1l8.7-8.7a3.4 3.4 0 0 1 4.8 4.8l-8.6 8.6a1.8 1.8 0 0 1-2.6-2.6l7.9-7.9"/></svg>
+            </button>
+            <button id="btnVoice" class="btn btn-icon btn-voice" title="Ghi âm giọng nói" aria-label="Ghi âm giọng nói" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>
             </button>
             <textarea id="msgInput" class="msg-input" rows="1" placeholder="Nhập tin nhắn..."
                       autocomplete="off" enterkeyhint="send" aria-label="Nội dung tin nhắn"></textarea>
@@ -543,6 +555,84 @@
             </label>
           </div>
         </section>
+
+        <section class="settings-group">
+          <h3>Nâng cao</h3>
+          <div class="setting-row">
+            <div class="setting-label">
+              <strong>Hiệu ứng động</strong>
+              <span class="setting-desc">Bật các animation và chuyển đổi giao diện</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" data-setting="animations" aria-label="Hiệu ứng động" />
+              <span class="switch-track"></span>
+            </label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-label">
+              <strong>Âm thanh giao diện</strong>
+              <span class="setting-desc">Âm báo khi bấm nút, gửi và nhận tin</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" data-setting="uiSounds" aria-label="Âm thanh giao diện" />
+              <span class="switch-track"></span>
+            </label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-label">
+              <strong>Nội dung thông báo</strong>
+              <span class="setting-desc">Hiện nội dung tin nhắn trong thông báo</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" data-setting="notifPreview" aria-label="Nội dung thông báo" />
+              <span class="switch-track"></span>
+            </label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-label">
+              <strong>Chất lượng ghi âm</strong>
+              <span class="setting-desc">Cao hơn cho âm thanh rõ, tốn dung lượng hơn</span>
+            </div>
+            <select class="input setting-select" data-setting="voiceQuality" aria-label="Chất lượng ghi âm">
+              <option value="low">Thấp</option>
+              <option value="normal">Bình thường</option>
+              <option value="high">Cao</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <div class="setting-label">
+              <strong>Thời lượng ghi âm tối đa</strong>
+              <span class="setting-desc">Tự dừng khi đạt giới hạn</span>
+            </div>
+            <select class="input setting-select" data-setting="voiceMaxDuration" aria-label="Thời lượng ghi âm tối đa">
+              <option value="60">60 giây</option>
+              <option value="120">120 giây</option>
+              <option value="300">300 giây</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <div class="setting-label">
+              <strong>Tự gửi sau khi ghi</strong>
+              <span class="setting-desc">Gửi ngay khi bạn nhấn Dừng</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" data-setting="voiceAutoSend" aria-label="Tự gửi sau khi ghi" />
+              <span class="switch-track"></span>
+            </label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-label">
+              <strong>Cỡ chữ</strong>
+              <span class="setting-desc">Phóng to hoặc thu nhỏ toàn bộ giao diện</span>
+            </div>
+            <select class="input setting-select" data-setting="fontScale" aria-label="Cỡ chữ">
+              <option value="0.9">90%</option>
+              <option value="1">100%</option>
+              <option value="1.1">110%</option>
+              <option value="1.2">120%</option>
+            </select>
+          </div>
+        </section>
       </div>
 
       <footer class="modal-foot settings-foot">
@@ -560,6 +650,7 @@
     import "./js/app.js";
     import { previewImage, clearImagePreview } from "./js/images.js";
     import { formatFileSize, MAX_FILE_SIZE } from "./js/storage.js";
+    import { VoiceRecorder, bitrateFor, formatDuration as formatVoiceTime, isRecordingSupported } from "./js/voice.js";
     import { initSettings, getSettings } from "./js/settings.js";
     import { initNotifications } from "./js/notifications.js";
     import { onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
@@ -1162,6 +1253,10 @@
     /* ---------- Đính kèm ảnh / tệp ---------- */
     let selectedFile = null;
     let isSending = false;
+    let voiceFile = null;
+    let voiceTimer = null;
+    let startingVoice = false;
+    const voiceRecorder = new VoiceRecorder();
     const msgInput = $("msgInput");
     const sendBtn = $("btnSend");
 
@@ -1173,7 +1268,7 @@
     function updateSendState() {
       if (!sendBtn) return;
       const hasText = !!(msgInput && msgInput.value.trim().length);
-      sendBtn.disabled = isSending || (!hasText && !selectedFile);
+      sendBtn.disabled = isSending || (!hasText && !selectedFile && !voiceFile);
     }
 
     function fileIconFor(f) {
@@ -1218,6 +1313,7 @@
     window.app.clearAttachment = () => clearFileSelection();
 
     function setSelectedFile(f) {
+      if (voiceFile || voiceRecorder.isRecording) discardVoice();
       if (!f) { clearFileSelection(); return; }
       if (!window.app.currentChatId()) {
         notify("Hãy chọn một cuộc trò chuyện trước khi đính kèm.");
@@ -1334,7 +1430,7 @@
       const chatId = window.app.currentChatId();
       const uid = window.app.currentUser()?.uid;
       if (!chatId || !uid) return;
-      const file = selectedFile;
+      const file = selectedFile || voiceFile;
       const text = (msgInput?.value || "").trim();
       if (!file && !text) { msgInput?.focus(); return; }
 
@@ -1351,6 +1447,7 @@
         let attachment = null;
         if (file) {
           attachment = await window.app.uploadChatAttachment(chatId, file, (p) => setAttachmentProgress(p, true));
+          if (file.voiceDuration) attachment.duration = file.voiceDuration;
           setAttachmentProgress(1, true);
         }
         const imageUrl = attachment && attachment.kind === "image" && attachment.url ? attachment.url : null;
@@ -1360,6 +1457,7 @@
           autoGrowInput();
         }
         clearFileSelection();
+        discardVoice();
         window.app.cancelReply();
         window.app.scrollToBottom?.("smooth");
       } catch (err) {
@@ -1388,6 +1486,100 @@
         sendCurrentMessage();
       }
     });
+
+    /* ---------- Ghi âm tin nhắn thoại ---------- */
+    function clearVoiceTimer() {
+      if (voiceTimer) { clearInterval(voiceTimer); voiceTimer = null; }
+    }
+
+    function setVoiceBarMode(mode) {
+      const bar = $("voiceBar");
+      if (!bar) return;
+      const recording = mode === "recording";
+      bar.classList.remove("hidden");
+      $("voiceDot")?.classList.toggle("recording", recording);
+      $("voiceHint").textContent = recording ? "Đang ghi âm…" : "Đã ghi xong · Nhấn Gửi";
+      $("btnVoiceCancel")?.classList.toggle("hidden", !recording);
+      $("btnVoiceStop")?.classList.toggle("hidden", !recording);
+      $("btnVoiceSend")?.classList.toggle("hidden", recording);
+      $("btnVoice")?.classList.toggle("is-recording", recording);
+    }
+
+    function startVoiceTimer() {
+      clearVoiceTimer();
+      const max = Number(getSettings().voiceMaxDuration) || 120;
+      const tick = () => {
+        const elapsed = (performance.now() - voiceRecorder.startedAt) / 1000;
+        if ($("voiceTime")) $("voiceTime").textContent = formatVoiceTime(elapsed);
+        if (elapsed >= max) finishVoiceRecording();
+      };
+      voiceTimer = setInterval(tick, 200);
+    }
+
+    async function startVoiceRecording() {
+      if (isSending || startingVoice) return;
+      if (!window.app.currentChatId()) {
+        notify("Hãy chọn một cuộc trò chuyện trước khi ghi âm.");
+        return;
+      }
+      if (!isRecordingSupported()) {
+        notify("Trình duyệt không hỗ trợ ghi âm.");
+        return;
+      }
+      if (voiceRecorder.isRecording) return;
+      if (selectedFile) clearFileSelection();
+      voiceFile = null;
+      startingVoice = true;
+      try {
+        await voiceRecorder.start({ bitsPerSecond: bitrateFor(getSettings().voiceQuality) });
+        if ($("voiceTime")) $("voiceTime").textContent = "0:00";
+        setVoiceBarMode("recording");
+        startVoiceTimer();
+        updateSendState();
+      } catch (err) {
+        notify(err?.name === "NotAllowedError"
+          ? "Bạn cần cho phép dùng micro để ghi âm."
+          : (err?.message || "Không bắt đầu được ghi âm."));
+      } finally {
+        startingVoice = false;
+      }
+    }
+
+    async function finishVoiceRecording() {
+      if (!voiceRecorder.isRecording) return;
+      clearVoiceTimer();
+      const result = await voiceRecorder.stop();
+      if (!result) { discardVoice(); return; }
+      voiceFile = result.file;
+      if ($("voiceTime")) $("voiceTime").textContent = formatVoiceTime(result.duration);
+      setVoiceBarMode("ready");
+      updateSendState();
+      if (getSettings().voiceAutoSend) setTimeout(() => sendCurrentMessage(), 250);
+    }
+
+    function discardVoice() {
+      clearVoiceTimer();
+      voiceRecorder.cancel();
+      voiceFile = null;
+      $("voiceBar")?.classList.add("hidden");
+      $("voiceDot")?.classList.remove("recording");
+      $("btnVoice")?.classList.remove("is-recording");
+      updateSendState();
+    }
+
+    $("btnVoice")?.addEventListener("click", () => {
+      if (voiceRecorder.isRecording) finishVoiceRecording();
+      else if (!voiceFile) startVoiceRecording();
+    });
+    $("btnVoiceStop")?.addEventListener("click", finishVoiceRecording);
+    $("btnVoiceCancel")?.addEventListener("click", discardVoice);
+    $("btnVoiceSend")?.addEventListener("click", sendCurrentMessage);
+
+    window.addEventListener("chat:closed", discardVoice);
+    window.addEventListener("chat:opened", () => {
+      if (voiceFile || voiceRecorder.isRecording) discardVoice();
+    });
+    window.addEventListener("pagehide", discardVoice);
 
     autoGrowInput();
     updateSendState();

@@ -360,6 +360,7 @@ function previewText(msg) {
   if (msg.imageUrl) return "📷 Ảnh";
   if (msg.attachment) {
     if (msg.attachment.kind === "image") return "📷 Ảnh";
+    if (msg.attachment.kind === "audio") return "🎤 Tin nhắn thoại";
     return "📎 " + (msg.attachment.name || "Tệp đính kèm");
   }
   const text = (msg.text || "").trim();

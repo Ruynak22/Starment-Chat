@@ -1,9 +1,12 @@
+import { getSettings } from "./settings.js";
+
 const ctx = () => {
   if (!window._audioCtx) window._audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   return window._audioCtx;
 };
 
 function beep(freq, dur, type = "sine", gain = 0.35) {
+  if (getSettings().uiSounds === false) return;
   try {
     const c = ctx();
     const o = c.createOscillator();

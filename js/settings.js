@@ -19,10 +19,16 @@ const DEFAULTS = {
   readReceipts: true,
   typingIndicator: true,
   animations: true,
-  sidebarCollapsed: false
+  sidebarCollapsed: false,
+  uiSounds: true,
+  voiceQuality: "normal",
+  voiceMaxDuration: 120,
+  voiceAutoSend: false,
+  fontScale: 1
 };
 
-const BOOL_KEYS = ["notifInApp", "notifSound", "notifDesktop", "notifPreview", "enterToSend", "compact", "readReceipts", "typingIndicator", "animations", "sidebarCollapsed"];
+const BOOL_KEYS = ["notifInApp", "notifSound", "notifDesktop", "notifPreview", "enterToSend", "compact", "readReceipts", "typingIndicator", "animations", "sidebarCollapsed", "uiSounds", "voiceAutoSend"];
+const NUMERIC_KEYS = ["voiceMaxDuration", "fontScale"];
 
 let settings = { ...DEFAULTS };
 let systemQuery = null;
@@ -42,6 +48,13 @@ function loadSettings() {
   BOOL_KEYS.forEach((key) => {
     if (typeof settings[key] !== "boolean") settings[key] = DEFAULTS[key];
   });
+  NUMERIC_KEYS.forEach((key) => {
+    const value = Number(settings[key]);
+    settings[key] = Number.isFinite(value) && value > 0 ? value : DEFAULTS[key];
+  });
+  if (!["low", "normal", "high"].includes(settings.voiceQuality)) {
+    settings.voiceQuality = DEFAULTS.voiceQuality;
+  }
 }
 
 function persist() {
@@ -63,6 +76,7 @@ export function applySettings() {
   root.dataset.theme = resolveTheme();
   root.dataset.accent = settings.accent;
   root.lang = settings.language || "vi";
+  root.style.setProperty("--font-scale", String(settings.fontScale || 1));
   document.body?.classList.toggle("compact", !!settings.compact);
   document.body?.classList.toggle("sidebar-collapsed", !!settings.sidebarCollapsed);
   document.body?.classList.toggle("no-animations", !settings.animations);
@@ -136,7 +150,9 @@ function syncControls() {
   });
   document.querySelectorAll("[data-setting]").forEach((input) => {
     const key = input.dataset.setting;
-    if (key in settings) input.checked = !!settings[key];
+    if (!(key in settings)) return;
+    if (input.tagName === "SELECT") input.value = String(settings[key]);
+    else input.checked = !!settings[key];
   });
   const langSel = document.getElementById("settingsLanguage");
   if (langSel) langSel.value = settings.language || "vi";
@@ -210,6 +226,7 @@ export function initSettings() {
   document.querySelectorAll("[data-setting]").forEach((input) => {
     input.addEventListener("change", async () => {
       const key = input.dataset.setting;
+      const isSelect = input.tagName === "SELECT";
       if (key === "notifDesktop" && input.checked) {
         const allowed = await requestDesktopPermission();
         if (!allowed) {
@@ -217,7 +234,10 @@ export function initSettings() {
           return;
         }
       }
-      updateSetting(key, input.checked);
+      const value = isSelect
+        ? (NUMERIC_KEYS.includes(key) ? Number(input.value) : input.value)
+        : input.checked;
+      updateSetting(key, value);
     });
   });
 
