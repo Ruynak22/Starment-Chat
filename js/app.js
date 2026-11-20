@@ -12,11 +12,8 @@ import { getSettings } from "./settings.js";
 
 const $ = (id) => document.getElementById(id);
 const LAST_CHAT_KEY = "starment_last_chat";
-<<<<<<< HEAD
 const PINNED_KEY = (uid) => `pinnedFriends_${uid}`;
-=======
 const PINNED_CHATS_KEY = "starment_pinned_chats";
->>>>>>> 2be819f46c32fba4d002c4158784ff687183225b
 let currentUser = null;
 let currentChatId = null;
 let currentChatPartnerUid = null;
@@ -53,15 +50,6 @@ function setPinnedList(uid, list) {
   try { localStorage.setItem(PINNED_KEY(uid), JSON.stringify(list)); } catch { /* ignore */ }
 }
 
-function updatePinButton() {
-  const btn = $("btnPinChat");
-  if (!btn) return;
-  const mine = currentUser?.uid;
-  const on = !!(currentChatPartnerUid && mine && getPinnedList(mine).includes(currentChatPartnerUid));
-  btn.classList.toggle("is-on", on);
-  btn.setAttribute("aria-pressed", String(on));
-  btn.title = on ? "Bỏ ghim cuộc trò chuyện" : "Ghim cuộc trò chuyện";
-}
 
 function togglePin() {
   if (!currentUser || !currentChatPartnerUid) return null;
@@ -191,22 +179,8 @@ async function refreshConnections() {
   }
 
   const users = await getConnectedUsers(currentUser.uid);
-<<<<<<< HEAD
-  const pinned = getPinnedList(currentUser.uid);
-  if (pinned.length) {
-    users.sort((a, b) => {
-      const ia = pinned.indexOf(a);
-      const ib = pinned.indexOf(b);
-      if (ia === -1 && ib === -1) return 0;
-      if (ia === -1) return 1;
-      if (ib === -1) return -1;
-      return ia - ib;
-    });
-  }
-=======
   const blocked = await getBlockedUids(currentUser.uid);
   const filteredUsers = users.filter((u) => !blocked.includes(u));
->>>>>>> 2be819f46c32fba4d002c4158784ff687183225b
   const list = $("connections");
   if (!list) return;
   list.innerHTML = "";
@@ -1273,139 +1247,4 @@ window.addEventListener("requests:changed", () => {
   if (currentUser) refreshConnections();
 });
 
-<<<<<<< HEAD
-window.app = { searchByUid, searchByName, sendFriendRequest, listIncomingRequests, respondRequest, sendMessage, uploadChatAttachment, openChat, currentUser: () => currentUser, currentChatId: () => currentChatId, currentChatPartnerUid: () => currentChatPartnerUid, closeChat, togglePin, presenceCache, updateStatusDot, cancelReply, startReply, scrollToBottom, openImageViewer, get replyingToMsg() { return replyingToMsg; } };
-=======
-window.app = { searchByUid, searchByName, sendFriendRequest, listIncomingRequests, respondRequest, sendMessage, uploadChatAttachment, openChat, openGroupChat, currentUser: () => currentUser, currentChatId: () => currentChatId, currentChatPartnerUid: () => currentChatPartnerUid, presenceCache, updateStatusDot, cancelReply, startReply, scrollToBottom, openImageViewer, get replyingToMsg() { return replyingToMsg; } };
-// Sidebar toggle + expand/close
-const sidebar = document.querySelector(".sidebar");
-$("btnSidebarToggle")?.addEventListener("click", () => {
-  const collapsed = sidebar.classList.toggle("collapsed");
-  localStorage.setItem("starment_sidebar_hidden", collapsed ? "1" : "0");
-  const t = $("btnSidebarToggle");
-  if (t) t.textContent = collapsed ? "→" : "←";
-  const ex = $("btnSidebarExpand");
-  if (ex) { ex.classList.toggle("hidden", !collapsed); }
-});
-
-document.addEventListener("click", (e) => {
-  if (!sidebar.contains(e.target)) {
-    sidebar.classList.remove("collapsed");
-    localStorage.setItem("starment_sidebar_hidden", "0");
-    $("btnSidebarToggle").textContent = "←";
-    $("btnSidebarExpand").classList.add("hidden");
-  }
-}, { capture: true });
-
-// Restore sidebar state
-(function () {
-  const hidden = localStorage.getItem("starment_sidebar_hidden") === "1";
-  const sidebar = document.querySelector(".sidebar");
-  if (sidebar && hidden) {
-    sidebar.classList.add("collapsed");
-    const t = $("btnSidebarToggle");
-    if (t) t.textContent = "→";
-    const ex = $("btnSidebarExpand");
-    if (ex) ex.classList.remove("hidden");
-  }
-})();
-
-// Context menu for connections
-let contextMenuTarget = null;
-const contextMenu = document.getElementById("contextMenu");
-if (contextMenu) {
-  contextMenu.addEventListener("click", async (e) => {
-    const li = e.target.closest("li");
-    if (!li || !contextMenuTarget) return;
-    const action = li.dataset.action;
-    const uid = contextMenuTarget;
-    contextMenu.classList.remove("show");
-    contextMenuTarget = null;
-
-    if (action === "block") {
-      if (await isBlocked(currentUser.uid, uid)) {
-        notify("Đã bị chắn rồi.");
-        return;
-      }
-      await blockUser(currentUser.uid, uid);
-      notify("Đã chắn.");
-      refreshConnections();
-    } else if (action === "unblock") {
-      await unblockUser(currentUser.uid, uid);
-      notify("Đã bỏ chắn.");
-      refreshConnections();
-    } else if (action === "delete") {
-      if (confirm("Xóa kết nối với người này?")) {
-        await removeConnection(currentUser.uid, uid);
-        refreshConnections();
-      }
-    } else if (action === "pin") {
-      await pinChat(uid);
-      refreshConnections();
-    } else if (action === "unpin") {
-      await unpinChat(uid);
-      refreshConnections();
-    }
-  });
-}
-document.addEventListener("click", () => {
-  if (contextMenu) contextMenu.classList.remove("show");
-});
-document.addEventListener("contextmenu", (e) => {
-  const li = e.target.closest("#connections .user-item");
-  if (!li || !currentUser) return;
-  // Lấy uid từ data-uid
-  const uid = li.dataset.uid;
-  if (!uid) return;
-  e.preventDefault();
-  contextMenuTarget = uid;
-  const blocked = false; // Sẽ check async
-  isBlocked(currentUser.uid, uid).then((b) => {
-    contextMenu.querySelectorAll("li").forEach((item) => {
-      item.style.display = "";
-      if (item.dataset.action === "unblock" && !b) item.style.display = "none";
-      if (item.dataset.action === "block" && b) item.style.display = "none";
-    });
-  });
-  contextMenu.style.left = e.pageX + "px";
-  contextMenu.style.top = e.pageY + "px";
-  contextMenu.classList.add("show");
-});
-
-// Header action buttons
-$("btnBlockChat")?.addEventListener("click", toggleBlockChat);
-$("btnPinChat")?.addEventListener("click", togglePinChat);
-
-window.app = {
-  searchByUid,
-  searchByName,
-  sendFriendRequest,
-  listIncomingRequests,
-  respondRequest,
-  sendMessage,
-  deleteMessage,
-  retractMessage,
-  pinMessage,
-  unpinMessage,
-  pinChat,
-  unpinChat,
-  isChatPinned,
-  createGroupChat,
-  uploadChatAttachment,
-  openChat,
-  openChatByChatId,
-  currentUser: () => currentUser,
-  currentChatId: () => currentChatId,
-  presenceCache,
-  updateStatusDot,
-  cancelReply,
-  startReply,
-  scrollToBottom,
-  openImageViewer,
-  openChatByChatId,
-  pinChat,
-  unpinChat,
-  isChatPinned,
-  get replyingToMsg() { return replyingToMsg; }
-};
->>>>>>> 2be819f46c32fba4d002c4158784ff687183225b
+window.app = { searchByUid, searchByName, sendFriendRequest, listIncomingRequests, respondRequest, sendMessage, deleteMessage, retractMessage, pinMessage, unpinMessage, uploadChatAttachment, openChat, openGroupChat, currentUser: () => currentUser, currentChatId: () => currentChatId, currentChatPartnerUid: () => currentChatPartnerUid, closeChat, togglePin, togglePinChat, toggleBlockChat, presenceCache, updateStatusDot, cancelReply, startReply, scrollToBottom, openImageViewer, get replyingToMsg() { return replyingToMsg; } };

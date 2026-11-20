@@ -21,13 +21,6 @@ const DEFAULTS = {
   notifPreview: true,
   enterToSend: true,
   compact: false,
-<<<<<<< HEAD
-  readReceipts: true,
-  typingIndicator: true
-};
-
-const BOOL_KEYS = ["notifInApp", "notifSound", "notifDesktop", "notifPreview", "enterToSend", "compact", "readReceipts", "typingIndicator"];
-=======
   sidebarCollapsed: false,
   readReceipts: true,
   typingIndicator: true,
@@ -36,7 +29,6 @@ const BOOL_KEYS = ["notifInApp", "notifSound", "notifDesktop", "notifPreview", "
 };
 
 const BOOL_KEYS = ["notifInApp", "notifSound", "notifDesktop", "notifPreview", "enterToSend", "compact", "sidebarCollapsed", "readReceipts", "typingIndicator", "animations"];
->>>>>>> 2be819f46c32fba4d002c4158784ff687183225b
 
 let settings = { ...DEFAULTS };
 let systemQuery = null;

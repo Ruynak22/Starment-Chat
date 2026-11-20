@@ -177,17 +177,7 @@ export async function deleteMessageForMe(chatId, msgId, uid) {
   });
 }
 
-export async function pinMessage(chatId, msgId, uid) {
-  const chatRef = doc(db, "chats", chatId);
-  await updateDoc(chatRef, { pinnedMessageIds: arrayUnion(msgId) });
-}
 
-export async function unpinMessage(chatId, msgId) {
-  const chatRef = doc(db, "chats", chatId);
-  const snap = await getDoc(chatRef);
-  const list = snap.exists() ? (snap.data().pinnedMessageIds || []) : [];
-  await updateDoc(chatRef, { pinnedMessageIds: list.filter((x) => x !== msgId) });
-}
 
 export async function getStreak(chatId) {
   const chatRef = doc(db, "chats", chatId);
@@ -200,26 +190,9 @@ export async function getStreak(chatId) {
    NHÓM
    - Tạo chat nhóm với nhiều thành viên.
    ============================================================ */
-export async function pinChat(partnerUid) {
-  const list = loadPinnedChats();
-  if (!list.includes(partnerUid)) {
-    list.push(partnerUid);
-    savePinnedChats(list);
-  }
-}
 
-export async function unpinChat(partnerUid) {
-  const list = loadPinnedChats().filter((x) => x !== partnerUid);
-  savePinnedChats(list);
-}
 
-export function isChatPinned(partnerUid) {
-  return loadPinnedChats().includes(partnerUid);
-}
 
-export function getPinnedChatsList() {
-  return loadPinnedChats();
-}
 
 export async function createGroupChat(members, name) {
   const sorted = [...members].sort();
