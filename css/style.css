@@ -420,6 +420,11 @@ select.input {
   background: var(--success);
 }
 .status-dot.offline { background: var(--text-faint); }
+.status-dot.hidden {
+  background: transparent;
+  box-shadow: inset 0 0 0 2px var(--text-faint);
+  opacity: .45;
+}
 
 /* Chấm trạng thái trên avatar (profile của mình / header cuộc chat). */
 #myAvatar::after,
@@ -443,6 +448,11 @@ body.is-online #myAvatar::after,
 body.is-offline #myAvatar::after,
 #chatAvatar.has-presence.offline::after {
   background: var(--text-faint);
+}
+body.activity-hidden #myAvatar::after,
+#chatAvatar.has-presence.hidden::after {
+  background: transparent;
+  border-color: var(--text-faint);
 }
 
 /* Badges */
@@ -1063,6 +1073,16 @@ button.me:hover .avatar { box-shadow: 0 0 0 3px var(--accent-soft); }
   white-space: nowrap;
 }
 .user-username { color: var(--accent); opacity: .85; }
+.user-activity {
+  font-size: .68rem;
+  line-height: 1.2;
+  color: var(--text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.user-activity.online { color: var(--success); }
+.user-activity.hidden { display: none; }
 .user-empty {
   padding: .6rem .55rem;
   font-size: .82rem;
@@ -1125,6 +1145,7 @@ button.me:hover .avatar { box-shadow: 0 0 0 3px var(--accent-soft); }
 }
 .chat-status.online { color: var(--success); }
 .chat-status.offline { color: var(--text-faint); }
+.chat-status.hidden { color: var(--text-faint); opacity: .7; }
 .chat-header-actions { display: flex; align-items: center; gap: 2px; flex: 0 0 auto; }
 .chat-header-actions .btn-icon { width: 36px; height: 36px; }
 .chat-header-actions .btn-icon.is-on { background: var(--accent-soft); color: var(--accent); }

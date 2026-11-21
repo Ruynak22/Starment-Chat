@@ -59,6 +59,7 @@ export async function ensureUserProfile(user) {
       username: "",
       usernameLower: "",
       photoURL: user.photoURL || "",
+      activityStatus: "everyone",
       createdAt: serverTimestamp()
     });
   }
@@ -68,6 +69,14 @@ export async function ensureUserProfile(user) {
 export async function getUserProfile(uid) {
   const snap = await getDoc(doc(db, "users", uid));
   return snap.exists() ? snap.data() : null;
+}
+
+/* Quyền riêng tư trạng thái hoạt động (đồng bộ giữa các thiết bị). */
+export async function updateActivityStatus(uid, value) {
+  if (!["everyone", "friends", "none"].includes(value)) {
+    throw new Error("Giá trị trạng thái hoạt động không hợp lệ.");
+  }
+  await updateDoc(doc(db, "users", uid), { activityStatus: value });
 }
 
 export async function updateDisplayName(uid, name) {
