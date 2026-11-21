@@ -9,6 +9,7 @@ import { setTyping } from "./presence.js";
 import { listenTyping } from "./typing.js";
 import { listenPresence } from "./presence.js";
 import { getSettings } from "./settings.js";
+import { setAvatar } from "./avatars.js";
 import { t } from "./i18n.js";
 import { formatDuration as formatVoiceDuration } from "./voice.js";
 import { db } from "./firebase-config.js";
@@ -90,6 +91,30 @@ function setMyStatus(online) {
   document.body.classList.toggle("is-offline", !online);
 }
 
+/* Nút đổi/xoá ảnh nhóm chỉ xuất hiện khi đang mở hội thoại nhóm. */
+function setGroupAvatarControls(visible, hasPhoto = false) {
+  $("btnChangeGroupPhoto")?.classList.toggle("hidden", !visible);
+  $("btnRemoveGroupPhoto")?.classList.toggle("hidden", !visible || !hasPhoto);
+}
+
+// Avatar đổi ở tab/thiết bị khác → làm mới danh sách và header đang mở.
+window.addEventListener("avatar:changed", (e) => {
+  const { kind, id, url } = e.detail || {};
+  if (kind === "user") {
+    profileCache.clear();
+    if (currentUser) refreshConnections().catch(() => {});
+    if (id && id === currentChatPartnerUid) {
+      getUserProfile(id).then((p) => {
+        if (id !== currentChatPartnerUid) return;
+        setAvatar($("chatAvatar"), url, (p?.displayName || "?").charAt(0).toUpperCase());
+      }).catch(() => {});
+    }
+  } else if (kind === "group" && id === currentChatId) {
+    setAvatar($("chatAvatar"), url, "👥");
+    setGroupAvatarControls(true, !!url);
+  }
+});
+
 onAuthStateChanged(auth, async (u) => {
   const previousUid = presenceUid;
   currentUser = u;
@@ -159,7 +184,7 @@ async function refreshConnections() {
       li.className = "user-item";
       const av = document.createElement("div");
       av.className = "avatar avatar-sm";
-      av.textContent = "?";
+      setAvatar(av, "", "?");
       const info = document.createElement("div");
       info.className = "user-info";
       const nm = document.createElement("strong");
@@ -178,7 +203,7 @@ async function refreshConnections() {
       uidEl.textContent = r.fromUid.slice(0, 8) + "…";
       getUserProfile(r.fromUid).then((p) => {
         nm.textContent = p?.displayName || r.fromUid.slice(0, 8);
-        av.textContent = (p?.displayName || "?").charAt(0).toUpperCase();
+        setAvatar(av, p?.photoURL, (p?.displayName || "?").charAt(0).toUpperCase());
         uidEl.textContent = p?.username ? "@" + p.username : r.fromUid.slice(0, 8) + "…";
         // Re-attach status dot
         av.appendChild(statusDot);
@@ -235,7 +260,7 @@ async function refreshConnections() {
     if (uid === currentChatPartnerUid) li.classList.add("active");
     const av = document.createElement("div");
     av.className = "avatar avatar-sm";
-    av.textContent = "?";
+    setAvatar(av, "", "?");
     const info = document.createElement("div");
     info.className = "user-info";
     const nm = document.createElement("strong");
@@ -263,7 +288,7 @@ async function refreshConnections() {
     getUserProfile(uid).then((p) => {
       nm.textContent = p?.displayName || uid.slice(0, 8);
       uidEl.textContent = p?.username ? "@" + p.username : uid.slice(0, 8) + "…";
-      av.textContent = (p?.displayName || "?").charAt(0).toUpperCase();
+      setAvatar(av, p?.photoURL, (p?.displayName || "?").charAt(0).toUpperCase());
       // Re-attach status dot after avatar text update
       av.appendChild(statusDot);
       updateStatusDot(statusDot, presenceCache.get(uid) || { online: false });
@@ -867,7 +892,8 @@ async function openChat(otherUid) {
   if (nameEl) nameEl.textContent = profile?.displayName || otherUid.slice(0, 8) + "…";
   currentPartnerLabel = profile?.username ? "@" + profile.username : "";
   const chatAvatar = $("chatAvatar");
-  if (chatAvatar) chatAvatar.textContent = (profile?.displayName || "?").charAt(0).toUpperCase();
+  setAvatar(chatAvatar, profile?.photoURL, (profile?.displayName || "?").charAt(0).toUpperCase());
+  setGroupAvatarControls(false);
   updateChatHeaderStatus(presenceCache.get(otherUid) || { online: false });
 
   // Cập nhật nút pin/block
@@ -1177,10 +1203,19 @@ async function openGroupChat(groupId, groupName) {
     statusEl.classList.remove("online", "offline");
   }
   const chatAvatar = $("chatAvatar");
-  if (chatAvatar) {
-    chatAvatar.textContent = "👥";
-    chatAvatar.classList.remove("has-presence", "online", "offline");
-  }
+  setAvatar(chatAvatar, "", "👥");
+  chatAvatar?.classList.remove("has-presence", "online", "offline");
+  setGroupAvatarControls(true, false);
+
+  // Ảnh/tên nhóm được cập nhật realtime cho mọi thành viên.
+  unsubscribeChat = listenChat(groupId, (chatData) => {
+    if (currentChatId !== groupId || sessionId !== chatSessionId) return;
+    if (!chatData) return;
+    if (nameEl) nameEl.textContent = chatData.name || groupName || "Nhóm";
+    const url = chatData.photoURL || "";
+    setAvatar($("chatAvatar"), url, "👥");
+    setGroupAvatarControls(true, !!url);
+  });
 
   window.dispatchEvent(new CustomEvent("chat:opened", { detail: { partnerUid: null, groupId } }));
 
@@ -1309,10 +1344,9 @@ function closeChat() {
     statusEl.classList.remove("online", "offline");
   }
   const avatarEl = $("chatAvatar");
-  if (avatarEl) {
-    avatarEl.textContent = "?";
-    avatarEl.classList.remove("has-presence", "online", "offline");
-  }
+  setAvatar(avatarEl, "", "?");
+  avatarEl?.classList.remove("has-presence", "online", "offline");
+  setGroupAvatarControls(false);
   const streakEl = $("chatStreak");
   if (streakEl) streakEl.innerHTML = "";
   document.querySelectorAll("#connections .user-item.active").forEach((li) => li.classList.remove("active"));

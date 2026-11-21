@@ -405,8 +405,66 @@ select.input {
   width: 11px;
   height: 11px;
   border: 2px solid var(--dot-ring);
+  z-index: 2;
 }
 .avatar-sm .status-dot { width: 10px; height: 10px; }
+
+/* Ảnh đại diện dạng hình (thay cho chữ cái / emoji) */
+.avatar.has-img { background: transparent; }
+.avatar .avatar-img {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}
+.avatar .avatar-label { position: relative; z-index: 0; }
+.avatar .avatar-label[hidden] { display: none; }
+
+/* Nút chọn/sửa ảnh (avatar cá nhân & ảnh nhóm) */
+.avatar-editor,
+.avatar-button {
+  position: relative;
+  display: inline-flex;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  line-height: 0;
+}
+.avatar-editor:hover .avatar,
+.avatar-button:hover .avatar { box-shadow: 0 0 0 3px var(--accent-soft); }
+.avatar-camera {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  font-family: inherit;
+  font-size: .85rem;
+  line-height: 1;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  border: 2px solid var(--bg, #0b0f16);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .35);
+  cursor: pointer;
+}
+.avatar-camera-sm { width: 20px; height: 20px; font-size: .62rem; }
+.avatar-camera-remove { right: -24px; background: var(--danger); }
+.avatar-button .avatar-camera { right: -4px; bottom: -4px; }
+.avatar-lg { width: 64px; height: 64px; font-size: 1.6rem; }
+
+.profile-avatar-actions { display: flex; justify-content: center; margin-top: .35rem; }
+.group-photo-row { display: flex; align-items: center; gap: .8rem; padding: .1rem 0 .4rem; }
+.group-photo-row small { color: var(--text-faint); }
 
 .status-dot {
   display: inline-block;

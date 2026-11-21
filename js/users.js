@@ -1,10 +1,8 @@
-import { db, storage, auth } from "./firebase-config.js";
+import { db } from "./firebase-config.js";
 import {
   doc, setDoc, getDoc, updateDoc, deleteDoc, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
-import {
-  ref, uploadBytes, getDownloadURL
-} from "https://www.gstatic.com/firebasejs/10.13.2/firebase-storage.js";
+import { saveAvatar as saveAvatarImage } from "./avatars.js";
 
 export const USERNAME_MIN = 3;
 export const USERNAME_MAX = 20;
@@ -194,13 +192,7 @@ export async function unblockUser(uid, otherUid) {
   await updateDoc(doc(db, "users", uid), { blockedUids: next });
 }
 
-/* Cập nhật avatar (yêu cầu Firebase Storage đã bật). */
+/* Cập nhật avatar — ủy thác cho module avatars (nén ảnh rồi lưu vào Firestore). */
 export async function updateAvatar(uid, file) {
-  if (!file.type.startsWith("image/")) throw new Error("Invalid MIME");
-  if (file.size > 2 * 1024 * 1024) throw new Error("File too large");
-  const r = ref(storage, `avatars/${uid}/${Date.now()}_${file.name}`);
-  await uploadBytes(r, file);
-  const url = await getDownloadURL(r);
-  await updateDoc(doc(db, "users", uid), { photoURL: url });
-  return url;
+  return saveAvatarImage(uid, file);
 }

@@ -228,7 +228,12 @@
         </button>
 
         <div class="chat-id">
-          <div id="chatAvatar" class="avatar">?</div>
+          <div id="chatAvatarEditor" class="avatar-button">
+            <div id="chatAvatar" class="avatar">?</div>
+            <button type="button" id="btnChangeGroupPhoto" class="avatar-camera avatar-camera-sm hidden" data-i18n-title="group.changePhoto" data-i18n-aria="group.changePhoto" title="Đổi ảnh nhóm" aria-label="Đổi ảnh nhóm">📷</button>
+            <button type="button" id="btnRemoveGroupPhoto" class="avatar-camera avatar-camera-sm avatar-camera-remove hidden" data-i18n-title="group.removePhoto" data-i18n-aria="group.removePhoto" title="Xóa ảnh nhóm" aria-label="Xóa ảnh nhóm">✕</button>
+            <input id="chatGroupPhotoInput" class="input-img" type="file" accept="image/*" />
+          </div>
           <div class="chat-header-info">
             <strong id="chatName" data-i18n="chat.selectConversation">Chọn một cuộc trò chuyện</strong>
             <span id="chatStatus" class="chat-status"></span>
@@ -352,7 +357,14 @@
 
       <div class="modal-body">
         <div class="profile-avatar-row">
-          <div id="profileAvatar" class="avatar avatar-xl">?</div>
+          <button type="button" id="btnChangeAvatar" class="avatar-editor" data-i18n-title="profile.changeAvatar" data-i18n-aria="profile.changeAvatar" title="Đổi ảnh đại diện" aria-label="Đổi ảnh đại diện">
+            <span id="profileAvatar" class="avatar avatar-xl">?</span>
+            <span class="avatar-camera" aria-hidden="true">📷</span>
+          </button>
+          <input id="avatarFileInput" class="input-img" type="file" accept="image/*" />
+        </div>
+        <div class="profile-avatar-actions">
+          <button type="button" id="btnRemoveAvatar" class="btn btn-link btn-sm hidden" data-i18n="profile.removeAvatar">Xóa ảnh đại diện</button>
         </div>
 
         <label class="field">
@@ -414,6 +426,14 @@
           <span data-i18n="group.name">Tên nhóm</span>
           <input id="groupName" type="text" data-i18n-ph="group.phName" placeholder="Nhóm của tôi" maxlength="60" />
         </label>
+        <div class="group-photo-row">
+          <button type="button" id="btnGroupPhoto" class="avatar-editor" data-i18n-title="group.changePhoto" data-i18n-aria="group.changePhoto" title="Chọn ảnh nhóm" aria-label="Chọn ảnh nhóm">
+            <span id="groupPhotoPreview" class="avatar avatar-lg">👥</span>
+            <span class="avatar-camera avatar-camera-sm" aria-hidden="true">📷</span>
+          </button>
+          <small data-i18n="group.photoHint">Ảnh đại diện nhóm (không bắt buộc)</small>
+          <input id="groupPhotoInput" class="input-img" type="file" accept="image/*" />
+        </div>
         <div id="groupMembers" class="user-list"></div>
       </div>
       <footer class="modal-foot">
@@ -793,6 +813,7 @@
     import { auth } from "./js/firebase-config.js";
     import { register, login, logout, resetPassword, friendlyError } from "./js/auth.js";
     import { getUserProfile, createUserProfile, updateDisplayName, updateUsername, validateUsername, normalizeUsername, blockUser, unblockUser, isBlocked } from "./js/users.js";
+    import { saveAvatar, removeAvatar, saveGroupPhoto, removeGroupPhoto, imageFileToDataUrl, setAvatar } from "./js/avatars.js";
     import { searchByUsername } from "./js/connections.js";
     import "./js/app.js";
     import { previewImage, clearImagePreview } from "./js/images.js";
@@ -1049,14 +1070,15 @@
         try {
           const profile = await getUserProfile(u.uid);
           myProfile = profile;
+          const myLetter = (profile?.displayName || u.displayName || u.email || "?").charAt(0).toUpperCase();
           $("myName").textContent = profile?.displayName || u.displayName || t("status.you", "Bạn");
           $("myUid").textContent = profile?.username ? "@" + profile.username : u.uid.slice(0, 8) + "…";
-          $("myAvatar").textContent = (profile?.displayName || u.email || "?").charAt(0).toUpperCase();
+          setAvatar($("myAvatar"), profile?.photoURL, myLetter);
         } catch (err) {
           myProfile = null;
           $("myName").textContent = u.displayName || t("status.you", "Bạn");
           $("myUid").textContent = u.uid.slice(0, 8) + "…";
-          $("myAvatar").textContent = (u.email || "?").charAt(0).toUpperCase();
+          setAvatar($("myAvatar"), "", (u.email || "?").charAt(0).toUpperCase());
         }
       } else {
         clearRememberCookie();
@@ -1134,7 +1156,8 @@
       const p = myProfile || {};
       $("profileDisplayName").value = p.displayName || "";
       $("profileUsername").value = p.username || "";
-      $("profileAvatar").textContent = (p.displayName || auth.currentUser?.email || "?").charAt(0).toUpperCase();
+      setAvatar($("profileAvatar"), p.photoURL, (p.displayName || auth.currentUser?.email || "?").charAt(0).toUpperCase());
+      $("btnRemoveAvatar")?.classList.toggle("hidden", !p.photoURL);
       setStatus($("profileStatus"), "");
       updateProfileSaveVisibility();
       updateUsernameCooldownInfo(p);
@@ -1160,6 +1183,62 @@
     $("btnProfileCancel")?.addEventListener("click", closeProfileModal);
     profileModal?.querySelector('[data-close="profile"]')?.addEventListener("click", closeProfileModal);
 
+    /* ---------- Đổi / xóa ảnh đại diện ---------- */
+    $("btnChangeAvatar")?.addEventListener("click", () => $("avatarFileInput")?.click());
+    $("avatarFileInput")?.addEventListener("change", async (e) => {
+      const input = e.currentTarget;
+      const file = input.files?.[0];
+      input.value = "";
+      const uid = currentUserUid();
+      if (!file || !uid) return;
+      setStatus($("profileStatus"), t("profile.avatarUploading", "Đang tải ảnh lên…"));
+      try {
+        const url = await saveAvatar(uid, file);
+        if (myProfile) myProfile = { ...myProfile, photoURL: url };
+        const letter = (myProfile?.displayName || auth.currentUser?.email || "?").charAt(0).toUpperCase();
+        setAvatar($("profileAvatar"), url, letter);
+        setAvatar($("myAvatar"), url, letter);
+        $("btnRemoveAvatar")?.classList.remove("hidden");
+        setStatus($("profileStatus"), t("profile.avatarSaved", "Đã cập nhật ảnh đại diện."), "success");
+      } catch (err) {
+        setStatus($("profileStatus"), err?.message || t("profile.avatarError", "Không cập nhật được ảnh đại diện."), "error");
+      }
+    });
+
+    $("btnRemoveAvatar")?.addEventListener("click", async () => {
+      const uid = currentUserUid();
+      if (!uid) return;
+      const btn = $("btnRemoveAvatar");
+      btn.disabled = true;
+      try {
+        await removeAvatar(uid);
+        if (myProfile) myProfile = { ...myProfile, photoURL: "" };
+        const letter = (myProfile?.displayName || auth.currentUser?.email || "?").charAt(0).toUpperCase();
+        setAvatar($("profileAvatar"), "", letter);
+        setAvatar($("myAvatar"), "", letter);
+        btn.classList.add("hidden");
+        setStatus($("profileStatus"), t("profile.avatarRemoved", "Đã xóa ảnh đại diện."), "success");
+      } catch (err) {
+        setStatus($("profileStatus"), err?.message || t("profile.avatarError", "Không cập nhật được ảnh đại diện."), "error");
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    // Đồng bộ avatar khi thay đổi ở tab/thiết bị khác.
+    window.addEventListener("avatar:changed", (e) => {
+      const { kind, id, url } = e.detail || {};
+      const myUid = currentUserUid();
+      if (kind !== "user" || !myUid || id !== myUid) return;
+      if (myProfile) myProfile = { ...myProfile, photoURL: url };
+      const letter = (myProfile?.displayName || auth.currentUser?.email || "?").charAt(0).toUpperCase();
+      setAvatar($("myAvatar"), url, letter);
+      if (profileModal && !profileModal.classList.contains("hidden")) {
+        setAvatar($("profileAvatar"), url, letter);
+        $("btnRemoveAvatar")?.classList.toggle("hidden", !url);
+      }
+    });
+
     $("btnProfileSave")?.addEventListener("click", async () => {
       const uid = currentUserUid();
       if (!uid) return;
@@ -1180,7 +1259,10 @@
         myProfile = fresh;
         $("myName").textContent = fresh?.displayName || displayName || "Bạn";
         $("myUid").textContent = fresh?.username ? "@" + fresh.username : uid.slice(0, 8) + "…";
-        $("myAvatar").textContent = (fresh?.displayName || displayName || "?").charAt(0).toUpperCase();
+        const letter = (fresh?.displayName || displayName || "?").charAt(0).toUpperCase();
+        setAvatar($("myAvatar"), fresh?.photoURL, letter);
+        setAvatar($("profileAvatar"), fresh?.photoURL, letter);
+        $("btnRemoveAvatar")?.classList.toggle("hidden", !fresh?.photoURL);
         setStatus($("profileStatus"), "Đã lưu hồ sơ", "success");
         setTimeout(closeProfileModal, 650);
       } catch (err) {
@@ -1279,6 +1361,22 @@
     });
 
     /* ---------- Tạo nhóm ---------- */
+    let groupPhotoDataUrl = "";
+
+    $("btnGroupPhoto")?.addEventListener("click", () => $("groupPhotoInput")?.click());
+    $("groupPhotoInput")?.addEventListener("change", async (e) => {
+      const input = e.currentTarget;
+      const file = input.files?.[0];
+      input.value = "";
+      if (!file) return;
+      try {
+        groupPhotoDataUrl = await imageFileToDataUrl(file, { maxDim: 640 });
+        setAvatar($("groupPhotoPreview"), groupPhotoDataUrl, "👥");
+      } catch (err) {
+        notify(err?.message || t("profile.avatarError", "Không xử lý được ảnh."));
+      }
+    });
+
     function closeGroupModal() {
       const modal = $("groupModal");
       if (!modal) return;
@@ -1301,6 +1399,9 @@
       const membersEl = $("groupMembers");
       if (!membersEl) return;
       membersEl.innerHTML = "";
+      groupPhotoDataUrl = "";
+      if ($("groupName")) $("groupName").value = "";
+      setAvatar($("groupPhotoPreview"), "", "👥");
       let users = [];
       try {
         const { getConnectedUsers } = await import("./js/connections.js");
@@ -1347,7 +1448,8 @@
           name,
           members: memberUids,
           createdAt: serverTimestamp(),
-          createdBy: myUid
+          createdBy: myUid,
+          photoURL: groupPhotoDataUrl || ""
         });
         const modal = $("groupModal");
         modal?.classList.add("hidden");
@@ -1355,6 +1457,51 @@
         window.app.openGroupChat?.(groupId, name);
         notify("Đã tạo nhóm");
       } catch (e) { notify(e?.message || "Không tạo được nhóm"); }
+    });
+
+    /* ---------- Đổi ảnh nhóm từ header cuộc trò chuyện ---------- */
+    $("chatAvatarEditor")?.addEventListener("click", (e) => {
+      if (e.target.closest("#btnRemoveGroupPhoto") || e.target.closest("#btnChangeGroupPhoto")) return;
+      const groupId = window.app?.currentChatId?.();
+      if (!groupId?.startsWith("group_")) return;
+      $("chatGroupPhotoInput")?.click();
+    });
+    $("btnChangeGroupPhoto")?.addEventListener("click", () => $("chatGroupPhotoInput")?.click());
+    $("chatGroupPhotoInput")?.addEventListener("change", async (e) => {
+      const input = e.currentTarget;
+      const file = input.files?.[0];
+      input.value = "";
+      const groupId = window.app?.currentChatId?.();
+      if (!file || !groupId?.startsWith("group_")) return;
+      notify(t("group.photoUploading", "Đang tải ảnh nhóm lên…"));
+      try {
+        const url = await saveGroupPhoto(groupId, file);
+        setAvatar($("chatAvatar"), url, "👥");
+        $("btnRemoveGroupPhoto")?.classList.remove("hidden");
+        notify(t("group.photoSaved", "Đã cập nhật ảnh nhóm."));
+      } catch (err) {
+        notify(err?.message || t("group.photoError", "Không cập nhật được ảnh nhóm."));
+      }
+    });
+
+    $("btnRemoveGroupPhoto")?.addEventListener("click", async () => {
+      const groupId = window.app?.currentChatId?.();
+      if (!groupId?.startsWith("group_")) return;
+      try {
+        await removeGroupPhoto(groupId);
+        setAvatar($("chatAvatar"), "", "👥");
+        $("btnRemoveGroupPhoto")?.classList.add("hidden");
+        notify(t("group.photoRemoved", "Đã xóa ảnh nhóm."));
+      } catch (err) {
+        notify(err?.message || t("group.photoError", "Không cập nhật được ảnh nhóm."));
+      }
+    });
+
+    window.addEventListener("avatar:changed", (e) => {
+      const { kind, id, url } = e.detail || {};
+      if (kind !== "group" || id !== window.app?.currentChatId?.()) return;
+      setAvatar($("chatAvatar"), url, "👥");
+      $("btnRemoveGroupPhoto")?.classList.toggle("hidden", !url);
     });
 
     /* ---------- Tìm kiếm người dùng ---------- */
@@ -1404,7 +1551,7 @@
         li.setAttribute("role", "button");
         const av = document.createElement("div");
         av.className = "avatar avatar-sm";
-        av.textContent = (u.displayName || "?").charAt(0).toUpperCase();
+        setAvatar(av, u.photoURL, (u.displayName || "?").charAt(0).toUpperCase());
 
         const statusDot = document.createElement("span");
         statusDot.className = "status-dot";
