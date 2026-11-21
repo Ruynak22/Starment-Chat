@@ -711,7 +711,7 @@
     </div>
   </div>
 
-  <!-- ===================== MODAL TỆP CỦA TÔI ===================== -->
+  <!-- ===================== MODAL TỆP CỦA TÔI (Zalo-style) ===================== -->
   <div id="documentsModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="documentsModalTitle">
     <div class="modal-backdrop" data-close="documents"></div>
     <div class="modal-card documents-card">
@@ -719,20 +719,72 @@
         <h2 id="documentsModalTitle" data-i18n="doc.title">Tệp của tôi</h2>
         <button type="button" id="btnDocClose" class="btn btn-icon" data-i18n-title="viewer.close" data-i18n-aria="viewer.close" title="Đóng" aria-label="Đóng">✕</button>
       </header>
-      <div class="modal-body documents-body">
-        <p class="documents-desc" data-i18n="doc.desc">Các tệp đã lưu trên tài khoản. Chọn một tệp để gửi trong cuộc trò chuyện hiện tại.</p>
-        <div class="documents-toolbar">
-          <button type="button" id="btnDocUpload" class="btn btn-sm btn-primary" data-i18n="doc.upload">Tải tệp lên</button>
-          <input id="docFileInput" class="input-img" type="file" multiple />
-          <input id="docSearch" class="input" type="search" data-i18n-ph="doc.search" placeholder="Tìm tệp..." />
+
+      <div class="doc-storage">
+        <div class="doc-storage-head">
+          <span id="docStorageText" data-i18n="doc.storageUsed">Đã dùng 0 B / 2 GB</span>
+          <span class="doc-storage-cloud">☁</span>
         </div>
+        <div class="doc-storage-track"><div id="docStorageFill" class="doc-storage-fill"></div></div>
+      </div>
+
+      <div class="documents-toolbar">
+        <button type="button" id="btnDocUpload" class="btn btn-sm btn-primary" data-i18n="doc.upload">Tải tệp lên</button>
+        <input id="docFileInput" class="input-img" type="file" multiple />
+        <input id="docSearch" class="input" type="search" data-i18n-ph="doc.search" placeholder="Tìm tệp..." />
+        <select id="docSort" class="input doc-sort" data-i18n-aria="doc.sort" aria-label="Sắp xếp">
+          <option value="newest" data-i18n="doc.sortNewest">Mới nhất</option>
+          <option value="oldest" data-i18n="doc.sortOldest">Cũ nhất</option>
+          <option value="name" data-i18n="doc.sortName">Tên A–Z</option>
+          <option value="size" data-i18n="doc.sortSize">Kích thước</option>
+        </select>
+        <button type="button" id="btnDocView" class="btn btn-icon btn-sm" data-i18n-title="doc.gridView" title="Xem lưới" aria-label="Xem lưới">▦</button>
+      </div>
+
+      <div id="docCategoryTabs" class="doc-tabs" role="tablist">
+        <button type="button" class="doc-tab active" data-category="all" data-i18n="doc.all">Tất cả</button>
+        <button type="button" class="doc-tab" data-category="image" data-i18n="doc.images">Ảnh</button>
+        <button type="button" class="doc-tab" data-category="video" data-i18n="doc.videos">Video</button>
+        <button type="button" class="doc-tab" data-category="document" data-i18n="doc.documents">Tài liệu</button>
+        <button type="button" class="doc-tab" data-category="audio" data-i18n="doc.audios">Âm thanh</button>
+        <button type="button" class="doc-tab" data-category="other" data-i18n="doc.others">Khác</button>
+      </div>
+
+      <div class="modal-body documents-body">
         <div id="docUploadProgress" class="doc-upload-progress hidden" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
           <div id="docUploadProgressFill" class="doc-upload-progress-fill"></div>
         </div>
-        <ul id="docList" class="doc-list"></ul>
+        <div id="docBulkBar" class="doc-bulk-bar hidden">
+          <span id="docSelectedText" data-i18n="doc.selectedCount">Đã chọn 0 tệp</span>
+          <span class="doc-bulk-actions">
+            <button type="button" id="btnDocSendSelected" class="btn btn-sm btn-primary" data-i18n="doc.sendSelected">Gửi vào chat</button>
+            <button type="button" id="btnDocDownloadSelected" class="btn btn-icon btn-sm" data-i18n-title="doc.downloadSelected" title="Tải xuống" aria-label="Tải xuống">⬇</button>
+            <button type="button" id="btnDocDeleteSelected" class="btn btn-icon btn-sm doc-delete" data-i18n-title="doc.deleteSelected" title="Xóa" aria-label="Xóa">🗑</button>
+            <button type="button" id="btnDocClearSelection" class="btn btn-sm" data-i18n="doc.clearSelection">Bỏ chọn</button>
+          </span>
+        </div>
+        <div id="docList" class="doc-list"></div>
       </div>
-      <footer class="modal-foot">
+
+      <footer class="modal-foot doc-foot">
+        <button type="button" id="btnDocSelectAll" class="btn btn-link" data-i18n="doc.selectAll">Chọn tất cả</button>
         <button type="button" id="btnDocDone" class="btn btn-primary" data-i18n="doc.close">Đóng</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Xem trước tệp (ảnh / video) -->
+  <div id="docPreviewModal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Xem trước tệp">
+    <div class="modal-backdrop" data-close="docPreview"></div>
+    <div class="modal-card doc-preview-card">
+      <header class="modal-head">
+        <h2 id="docPreviewTitle" class="doc-preview-title">—</h2>
+        <button type="button" id="btnDocPreviewClose" class="btn btn-icon" data-i18n-title="viewer.close" data-i18n-aria="viewer.close" title="Đóng" aria-label="Đóng">✕</button>
+      </header>
+      <div id="docPreviewBody" class="doc-preview-body"></div>
+      <footer class="modal-foot">
+        <button type="button" id="btnDocPreviewDownload" class="btn" data-i18n="doc.download">Tải xuống</button>
+        <button type="button" id="btnDocPreviewSend" class="btn btn-primary" data-i18n="chat.send">Gửi</button>
       </footer>
     </div>
   </div>
@@ -1164,22 +1216,67 @@
         const blocked = await isBlocked(myUid, otherUid);
         if (blocked) {
           await unblockUser(myUid, otherUid);
-          notify("Đã bỏ chặn");
+          notify(t("app.unblocked", "Đã bỏ chắn."));
           refreshBlockButton();
+          window.app?.refreshConnections?.();
         } else {
           await blockUser(myUid, otherUid);
-          notify("Đã chặn người dùng");
+          notify(t("app.blocked", "Đã chắn."));
           window.app?.closeChat?.();
+          window.app?.refreshConnections?.();
         }
       } catch (e) { notify(e?.message || "Không thực hiện được."); }
     });
 
-    $("btnPinChat")?.addEventListener("click", () => {
-      const pinned = window.app?.togglePin?.();
-      if (pinned === true) notify("Đã ghim cuộc trò chuyện");
-      else if (pinned === false) notify("Đã bỏ ghim cuộc trò chuyện");
+    $("btnPinChat")?.addEventListener("click", async () => {
+      const pinned = await window.app?.togglePinChat?.();
+      if (pinned === true) notify(t("app.pinned", "Đã ghim tin nhắn."));
+      else if (pinned === false) notify(t("app.unpinned", "Đã bỏ ghim."));
     });
     window.addEventListener("chat:opened", () => { refreshBlockButton().catch(() => {}); });
+
+    /* ---------- Context menu trên danh sách kết nối ---------- */
+    const contextMenu = $("contextMenu");
+    let contextUid = null;
+    $("connections")?.addEventListener("contextmenu", async (e) => {
+      const item = e.target.closest(".user-item");
+      if (!item || !contextMenu) return;
+      e.preventDefault();
+      contextUid = item.dataset.uid;
+      if (!contextUid) return;
+      const myUid = window.app?.currentUser?.()?.uid;
+      let blocked = false;
+      try { blocked = await isBlocked(myUid, contextUid); } catch { /* ignore */ }
+      const pinned = !!window.app?.isChatPinned?.(contextUid);
+      contextMenu.querySelector('[data-action="block"]')?.classList.toggle("hidden", blocked);
+      contextMenu.querySelector('[data-action="unblock"]')?.classList.toggle("hidden", !blocked);
+      contextMenu.querySelector('[data-action="pin"]')?.classList.toggle("hidden", pinned);
+      contextMenu.querySelector('[data-action="unpin"]')?.classList.toggle("hidden", !pinned);
+      contextMenu.style.left = Math.min(e.clientX, window.innerWidth - 200) + "px";
+      contextMenu.style.top = Math.min(e.clientY, window.innerHeight - 220) + "px";
+      contextMenu.classList.add("show");
+    });
+    document.addEventListener("click", () => contextMenu?.classList.remove("show"));
+    window.addEventListener("scroll", () => contextMenu?.classList.remove("show"), true);
+    contextMenu?.addEventListener("click", async (e) => {
+      const li = e.target.closest("li[data-action]");
+      if (!li || !contextUid) return;
+      const action = li.dataset.action;
+      const uid = contextUid;
+      contextMenu.classList.remove("show");
+      const myUid = window.app?.currentUser?.()?.uid;
+      try {
+        if (action === "block") { await blockUser(myUid, uid); notify(t("app.blocked", "Đã chắn.")); }
+        else if (action === "unblock") { await unblockUser(myUid, uid); notify(t("app.unblocked", "Đã bỏ chắn.")); }
+        else if (action === "delete") {
+          const { removeConnection } = await import("./js/connections.js");
+          await removeConnection(myUid, uid);
+          notify(t("ctx.delete", "Xóa kết nối"));
+        } else if (action === "pin") { await window.app?.pinChat?.(uid); notify(t("app.pinned", "Đã ghim tin nhắn.")); }
+        else if (action === "unpin") { await window.app?.unpinChat?.(uid); notify(t("app.unpinned", "Đã bỏ ghim.")); }
+        window.app?.refreshConnections?.();
+      } catch (err) { notify(err?.message || "Không thực hiện được."); }
+    });
 
     /* ---------- Tạo nhóm ---------- */
     function closeGroupModal() {
@@ -1420,6 +1517,17 @@
     window.app.clearAttachment = () => clearFileSelection();
     // Dùng bởi "Tệp của tôi": đưa tệp đã lưu vào khung soạn tin nhắn.
     window.app.setDocumentAsAttachment = (file) => setSelectedFile(file);
+    // Gửi nhiều tệp từ "Tệp của tôi" vào cuộc trò chuyện hiện tại.
+    window.app.sendDocumentFiles = async (files) => {
+      const chatId = window.app.currentChatId();
+      const uid = window.app.currentUser()?.uid;
+      if (!chatId || !uid || !files?.length) throw new Error(t("doc.noChat", "Hãy mở một cuộc trò chuyện trước khi gửi tệp"));
+      for (let i = 0; i < files.length; i++) {
+        notify(`${t("doc.uploading", "Đang tải lên…")} ${i + 1}/${files.length}`);
+        const attachment = await window.app.uploadChatAttachment(chatId, files[i]);
+        await window.app.sendMessage(chatId, uid, null, null, null, attachment);
+      }
+    };
 
     function setSelectedFile(f) {
       if (voiceFile || voiceRecorder.isRecording) discardVoice();

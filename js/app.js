@@ -16,7 +16,6 @@ import { db } from "./firebase-config.js";
 const $ = (id) => document.getElementById(id);
 const LAST_CHAT_KEY = "starment_last_chat";
 const PINNED_KEY = (uid) => `pinnedFriends_${uid}`;
-const PINNED_CHATS_KEY = "starment_pinned_chats";
 let currentUser = null;
 let currentChatId = null;
 let currentChatPartnerUid = null;
@@ -776,22 +775,30 @@ function updateChatHeaderStatus(presence) {
 
 function updatePinButton() {
   const btn = $("btnPinChat");
-  if (!btn || !currentChatPartnerUid) return;
-  const pinned = isChatPinned(currentChatPartnerUid);
+  if (!btn) return;
+  const pinned = !!(currentChatPartnerUid && isChatPinned(currentChatPartnerUid));
   btn.classList.toggle("active", pinned);
+  btn.setAttribute("aria-pressed", String(pinned));
   btn.title = pinned ? t("ctx.unpin", "Bỏ ghim") : t("ctx.pin", "Ghim");
 }
 
 async function togglePinChat() {
-  if (!currentChatPartnerUid) return;
-  const pinned = isChatPinned(currentChatPartnerUid);
-  if (pinned) {
-    await unpinChat(currentChatPartnerUid);
-  } else {
-    await pinChat(currentChatPartnerUid);
-  }
+  if (!currentChatPartnerUid || !currentUser) return null;
+  const uid = currentChatPartnerUid;
+  const pinned = isChatPinned(uid);
+
+  // Giữ đồng bộ 2 nơi lưu: thứ tự sidebar + trạng thái nút ghim.
+  const list = getPinnedList(currentUser.uid);
+  setPinnedList(currentUser.uid, pinned
+    ? list.filter((x) => x !== uid)
+    : [uid, ...list.filter((x) => x !== uid)]);
+
+  if (pinned) await unpinChat(uid);
+  else await pinChat(uid);
+
   updatePinButton();
   refreshConnections();
+  return !pinned;
 }
 
 async function toggleBlockChat() {
@@ -1074,6 +1081,8 @@ async function openChat(otherUid) {
     });
   });
 
+  // Tránh chồng listener khi chuyển cuộc trò chuyện liên tiếp.
+  if (scrollHandler) box.removeEventListener("scroll", scrollHandler);
   scrollHandler = () => {
     if (performance.now() < smoothScrollLockUntil) return;
     const atBottom = isNearBottom(box);
@@ -1276,6 +1285,9 @@ function closeChat() {
   renderedMsgIds.clear();
   stickToBottom = true;
   unseenWhileAway = 0;
+  // Xoá thanh tin nhắn đã ghim (có thể do render async còn tồn tại sau khi đóng chat).
+  pinnedRenderId += 1;
+  document.querySelector(".pinned-bar")?.remove();
   updateScrollBottomButton();
   const typingEl = $("typing");
   if (typingEl) {
@@ -1448,4 +1460,4 @@ window.addEventListener("requests:changed", () => {
   if (currentUser) refreshConnections();
 });
 
-window.app = { searchByUid, searchByName, sendFriendRequest, listIncomingRequests, respondRequest, sendMessage, deleteMessage, retractMessage, pinMessage, unpinMessage, uploadChatAttachment, openChat, openChatByChatId: openChat, openGroupChat, currentUser: () => currentUser, currentChatId: () => currentChatId, currentChatPartnerUid: () => currentChatPartnerUid, closeChat, togglePin, togglePinChat, toggleBlockChat, presenceCache, updateStatusDot, cancelReply, startReply, scrollToBottom, openImageViewer, get replyingToMsg() { return replyingToMsg; } };
+window.app = { searchByUid, searchByName, sendFriendRequest, listIncomingRequests, respondRequest, sendMessage, deleteMessage, retractMessage, pinMessage, unpinMessage, uploadChatAttachment, openChat, openChatByChatId: openChat, openGroupChat, currentUser: () => currentUser, currentChatId: () => currentChatId, currentChatPartnerUid: () => currentChatPartnerUid, closeChat, togglePin, togglePinChat, toggleBlockChat, pinChat, unpinChat, isChatPinned, refreshConnections, presenceCache, updateStatusDot, cancelReply, startReply, scrollToBottom, openImageViewer, get replyingToMsg() { return replyingToMsg; } };

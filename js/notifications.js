@@ -7,6 +7,7 @@ import { listenIncomingRequests, getConnectedUsers } from "./connections.js";
 import { chatIdFor } from "./messages.js";
 import { getUserProfile } from "./users.js";
 import { getSettings } from "./settings.js";
+import { t } from "./i18n.js";
 
 /* ============================================================
    TRUNG TÂM THÔNG BÁO
@@ -313,7 +314,8 @@ function showDesktopNotification(entry) {
     const native = new Notification(entry.title, {
       body: entry.body,
       tag: entry.partnerUid || entry.id,
-      silent: getSettings().notifSound
+      // App tự phát âm báo riêng; tắt tiếng native để tránh phát 2 lần / phát khi đã tắt.
+  silent: true
     });
     native.onclick = () => {
       window.focus();
@@ -357,20 +359,22 @@ function addNotification(entry) {
 /* ---------- Tin nhắn mới ---------- */
 function previewText(msg) {
   if (!msg) return "Bạn có tin nhắn mới";
-  if (msg.imageUrl) return "📷 Ảnh";
+  if (msg.imageUrl) return "📷 " + t("status.image", "Ảnh");
   if (msg.attachment) {
-    if (msg.attachment.kind === "image") return "📷 Ảnh";
-    if (msg.attachment.kind === "audio") return "🎤 Tin nhắn thoại";
-    return "📎 " + (msg.attachment.name || "Tệp đính kèm");
+    if (msg.attachment.kind === "image") return "📷 " + t("status.image", "Ảnh");
+    if (msg.attachment.kind === "audio") return "🎤 " + t("status.voice", "Tin nhắn thoại");
+    return "📎 " + (msg.attachment.name || t("notif.attachment", "Tệp đính kèm"));
   }
   const text = (msg.text || "").trim();
-  if (!text) return "Bạn có tin nhắn mới";
+  if (!text) return t("notif.newMessage", "Bạn có tin nhắn mới");
   return text.length > 120 ? text.slice(0, 120) + "…" : text;
 }
 
 function handleLatestMessage(partnerUid, chatId, msgId, data) {
   if (!currentUid) return;
   const myUid = currentUid;
+  // Không tự báo cho chính mình (kể cả khi gửi từ thiết bị khác).
+  if (data?.senderUid === myUid) return;
   const at = data?.createdAt?.toMillis?.() || Date.now();
   const prev = meta.chatLast[chatId];
   meta.chatLast[chatId] = { id: msgId, at };
@@ -397,7 +401,7 @@ function handleLatestMessage(partnerUid, chatId, msgId, data) {
   const settings = getSettings();
   if (!settings.notifInApp && !settings.notifSound && !settings.notifDesktop) return;
 
-  const body = settings.notifPreview ? previewText(data) : "Bạn có tin nhắn mới";
+  const body = settings.notifPreview ? previewText(data) : t("notif.newMessage", "Bạn có tin nhắn mới");
   const id = `msg_${msgId}`;
   getUserName(partnerUid).then((name) => {
     if (currentUid !== myUid) return;
@@ -412,7 +416,7 @@ function handleLatestMessage(partnerUid, chatId, msgId, data) {
     addNotification({
       id,
       type: "message",
-      title: `Tin nhắn mới từ ${name}`,
+      title: t("notif.titleFrom", "Tin nhắn mới từ {name}", { name }),
       body,
       partnerUid,
       at

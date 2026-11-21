@@ -5,10 +5,19 @@
    - Lưu bằng localStorage (không cần deploy rules).
    ============================================================ */
 
+import { auth } from "./firebase-config.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
+
 const GLOBAL_KEY = "starment_wallpaper";
 const GLOBAL_CUSTOM_KEY = "starment_wallpaper_custom";
 const PER_CHAT_KEY = "starment_chat_wallpapers";
 const MAX_CUSTOM_BYTES = 1_500_000;
+
+// Mỗi tài khoản một bộ nền riêng (tránh lộ ảnh cá nhân khi đổi tài khoản).
+const storageUid = () => auth.currentUser?.uid || "guest";
+const gKey = () => `${GLOBAL_KEY}_${storageUid()}`;
+const gcKey = () => `${GLOBAL_CUSTOM_KEY}_${storageUid()}`;
+const pcKey = () => `${PER_CHAT_KEY}_${storageUid()}`;
 
 export const WALLPAPERS = [
   { id: "default",  name: "Mặc định",       swatch: "linear-gradient(135deg,#1b2230,#0c1018)" },
@@ -39,28 +48,34 @@ function readJSON(key, fallback) {
 }
 
 function readGlobal() {
-  const id = localStorage.getItem(GLOBAL_KEY) || "default";
+  // Ưu tiên key theo uid, dự phòng key cũ (dùng chung) để không mất cài đặt.
+  const id = localStorage.getItem(gKey())
+    ?? localStorage.getItem(GLOBAL_KEY)
+    ?? "default";
+  const custom = localStorage.getItem(gcKey())
+    ?? localStorage.getItem(GLOBAL_CUSTOM_KEY)
+    ?? null;
   return {
     id: validIds.has(id) ? id : "default",
-    custom: localStorage.getItem(GLOBAL_CUSTOM_KEY) || null
+    custom
   };
 }
 
 function readPerChat() {
-  const map = readJSON(PER_CHAT_KEY, {});
+  const map = readJSON(pcKey(), readJSON(PER_CHAT_KEY, {}));
   return map && typeof map === "object" && !Array.isArray(map) ? map : {};
 }
 
 function writeGlobal(id, custom) {
   try {
-    localStorage.setItem(GLOBAL_KEY, id);
-    if (custom === null) localStorage.removeItem(GLOBAL_CUSTOM_KEY);
-    else if (custom) localStorage.setItem(GLOBAL_CUSTOM_KEY, custom);
+    localStorage.setItem(gKey(), id);
+    if (custom === null) localStorage.removeItem(gcKey());
+    else if (custom) localStorage.setItem(gcKey(), custom);
   } catch { /* ignore quota errors */ }
 }
 
 function writePerChat(map) {
-  try { localStorage.setItem(PER_CHAT_KEY, JSON.stringify(map)); } catch { /* ignore */ }
+  try { localStorage.setItem(pcKey(), JSON.stringify(map)); } catch { /* ignore */ }
 }
 
 /* ---------- Áp dụng nền ---------- */
@@ -222,6 +237,8 @@ export function initWallpaper() {
   applyWallpaper();
   window.addEventListener("chat:opened", applyWallpaper);
   window.addEventListener("chat:closed", applyWallpaper);
+  // Đổi tài khoản → nạp lại nền của tài khoản đó.
+  onAuthStateChanged(auth, () => applyWallpaper());
   window.addEventListener("i18n:changed", () => {
     const hint = document.getElementById("wallpaperHint");
     if (hint) {

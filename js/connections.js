@@ -131,12 +131,16 @@ async function getBlockedUidsSafe(uid) {
 /* Hủy kết nối (xóa lời mời đã chấp nhận). */
 export async function removeConnection(uid, otherUid) {
   const batch = writeBatch(db);
-  // Xóa cả 2 hướng (nếu tồn tại)
-  const id1 = `${uid}_${otherUid}`;
-  const id2 = `${otherUid}_${uid}`;
-  [id1, id2].forEach((id) => {
+  // Chỉ xoá các document tồn tại. Xoá document không có khiến firestore.rules
+  // truy cập resource.data → bị từ chối → toàn bộ batch thất bại.
+  let hasAny = false;
+  for (const id of [`${uid}_${otherUid}`, `${otherUid}_${uid}`]) {
     const ref = doc(db, "friendRequests", id);
-    batch.delete(ref);
-  });
-  await batch.commit();
+    const snap = await getDoc(ref);
+    if (snap.exists()) {
+      batch.delete(ref);
+      hasAny = true;
+    }
+  }
+  if (hasAny) await batch.commit();
 }

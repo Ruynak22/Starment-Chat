@@ -217,9 +217,6 @@ export function initSettings() {
   document.getElementById("btnSettingsDone")?.addEventListener("click", closeSettings);
   document.querySelector('#settingsModal [data-close="settings"]')?.addEventListener("click", closeSettings);
 
-  document.getElementById("btnToggleSidebar")?.addEventListener("click", () => {
-    updateSetting("sidebarCollapsed", !getSettings().sidebarCollapsed);
-  });
   document.getElementById("btnSettingsPassword")?.addEventListener("click", (e) => sendPasswordReset(e.currentTarget));
 
   document.querySelectorAll("[data-theme-option]").forEach((btn) => {

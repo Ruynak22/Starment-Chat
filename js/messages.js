@@ -1,4 +1,4 @@
-import { db } from "./firebase-config.js";
+import { db, auth } from "./firebase-config.js";
 import {
   collection, doc, addDoc, query, orderBy, limit, getDocs, onSnapshot, serverTimestamp, updateDoc, writeBatch, getDoc, setDoc, arrayUnion
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
@@ -289,25 +289,36 @@ export async function getPinnedMessages(chatId) {
 /* ============================================================
    GHIM KẾT NỐI (chat pin) — lưu local để ưu tiên hiển thị.
    ============================================================ */
-const PINNED_CHATS_KEY = "starment_pinned_chats";
+const PINNED_CHATS_KEY = (uid) => `starment_pinned_chats_${uid || "guest"}`;
+const LEGACY_PINNED_CHATS_KEY = "starment_pinned_chats";
 let _pinnedChatsCache = null;
+let _pinnedChatsCacheUid = null;
+
+function currentPinnedUid() {
+  return auth.currentUser?.uid || "guest";
+}
 
 function loadPinnedChats() {
-  if (_pinnedChatsCache) return _pinnedChatsCache;
+  const uid = currentPinnedUid();
+  if (_pinnedChatsCache && _pinnedChatsCacheUid === uid) return _pinnedChatsCache;
   try {
-    const raw = JSON.parse(localStorage.getItem(PINNED_CHATS_KEY) || "[]");
-    _pinnedChatsCache = Array.isArray(raw) ? raw : [];
-    return _pinnedChatsCache;
+    let raw = localStorage.getItem(PINNED_CHATS_KEY(uid));
+    // Di chuyển dữ liệu cũ (dùng key chung cho mọi tài khoản).
+    if (raw == null) raw = localStorage.getItem(LEGACY_PINNED_CHATS_KEY);
+    const list = JSON.parse(raw || "[]");
+    _pinnedChatsCache = Array.isArray(list) ? list : [];
   } catch {
     _pinnedChatsCache = [];
-    return _pinnedChatsCache;
   }
+  _pinnedChatsCacheUid = uid;
+  return _pinnedChatsCache;
 }
 
 function savePinnedChats(list) {
   try {
-    localStorage.setItem(PINNED_CHATS_KEY, JSON.stringify(list));
+    localStorage.setItem(PINNED_CHATS_KEY(currentPinnedUid()), JSON.stringify(list));
     _pinnedChatsCache = Array.isArray(list) ? list : null;
+    _pinnedChatsCacheUid = currentPinnedUid();
   } catch {
     /* ignore */
   }

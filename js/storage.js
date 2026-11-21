@@ -10,6 +10,23 @@ const URL_CACHE_MAX = 20;
 const INLINE_MAX_SIZE = 700 * 1024;
 
 let storageUsable = true;
+let storageRetryAt = 0;
+const STORAGE_RETRY_DELAY = 30_000;
+
+// Không khoá vĩnh viễn sau một lỗi tạm thời: thử lại sau một khoảng nghỉ ngắn.
+function canUseStorage() {
+  if (!storageUsable && Date.now() >= storageRetryAt) {
+    storageUsable = true;
+    storageRetryAt = 0;
+  }
+  return storageUsable;
+}
+
+function markStorageUnavailable() {
+  storageUsable = false;
+  storageRetryAt = Date.now() + STORAGE_RETRY_DELAY;
+}
+
 const urlCache = new Map();
 
 export function formatFileSize(bytes) {
@@ -111,7 +128,7 @@ async function prepareFile(file) {
 }
 
 function tryUploadToStorage(chatId, file, onProgress) {
-  if (!storageUsable) return Promise.resolve(null);
+  if (!canUseStorage()) return Promise.resolve(null);
   try {
     const name = safeFileName(file.name);
     const path = `chat-files/${chatId}/${Date.now()}_${name}`;
@@ -129,7 +146,7 @@ function tryUploadToStorage(chatId, file, onProgress) {
         resolve(value);
       };
       const timer = setTimeout(() => {
-        storageUsable = false;
+        markStorageUnavailable();
         console.warn("Firebase Storage phản hồi quá chậm, chuyển sang Realtime Database.");
         finish(null);
       }, 8000);
@@ -143,7 +160,7 @@ function tryUploadToStorage(chatId, file, onProgress) {
         },
         (err) => {
           clearTimeout(timer);
-          storageUsable = false;
+          markStorageUnavailable();
           console.warn("Firebase Storage không dùng được, chuyển sang Realtime Database:", err);
           finish(null);
         },
@@ -154,7 +171,7 @@ function tryUploadToStorage(chatId, file, onProgress) {
             const url = await getDownloadURL(r);
             finish({ url, path });
           } catch (err) {
-            storageUsable = false;
+            markStorageUnavailable();
             console.warn("Không lấy được URL tệp, chuyển sang Realtime Database:", err);
             finish(null);
           }
@@ -162,7 +179,7 @@ function tryUploadToStorage(chatId, file, onProgress) {
       );
     });
   } catch (err) {
-    storageUsable = false;
+    markStorageUnavailable();
     console.warn("Firebase Storage không dùng được, chuyển sang Realtime Database:", err);
     return Promise.resolve(null);
   }
