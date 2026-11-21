@@ -1,12 +1,14 @@
 import { auth } from "./firebase-config.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
-import { ensureUserProfile, getUserProfile, updateActivityStatus, blockUser, unblockUser, isBlocked, getBlockedUids } from "./users.js";
-import { setPresence, setOffline, setTyping, setActivityVisibility, formatActivityStatus, listenPresence } from "./presence.js";
+import { ensureUserProfile, getUserProfile, blockUser, unblockUser, isBlocked, getBlockedUids } from "./users.js";
+import { setPresence, setOffline, formatLastSeen } from "./presence.js";
 import { searchByUid, searchByName, sendFriendRequest, listIncomingRequests, respondRequest, getConnectedUsers, MAX_CONNECTIONS, removeConnection } from "./connections.js";
 import { chatIdFor, sendMessage, listenMessages, markMessagesAsRead, listenMessageStatus, listenChat, getStreak, STREAK_MILESTONES, deleteMessage, deleteMessageForMe, retractMessage, recallMessage, pinMessage, unpinMessage, getPinnedMessages, pinChat, unpinChat, isChatPinned, createGroupChat, updateGroupChat, addMemberToGroup, removeMemberFromGroup } from "./messages.js";
 import { uploadChatAttachment, getAttachmentUrl, downloadAttachment, formatFileSize } from "./storage.js";
+import { setTyping } from "./presence.js";
 import { listenTyping } from "./typing.js";
-import { getSettings, updateSetting } from "./settings.js";
+import { listenPresence } from "./presence.js";
+import { getSettings } from "./settings.js";
 import { formatDuration as formatVoiceDuration } from "./voice.js";
 import { db } from "./firebase-config.js";
 
@@ -28,7 +30,6 @@ let unseenWhileAway = 0;
 let scrollHandler = null;
 let presenceCache = new Map();
 let presenceUnsubscribes = new Map();
-let connectedUids = new Set();
 let replyingToMsg = null;
 let currentStreak = null;
 let typingIdleTimer = null;
@@ -89,62 +90,14 @@ function setMyStatus(online) {
   document.body.classList.toggle("is-offline", !online);
 }
 
-/* Trạng thái hoạt động chỉ hiện khi cả hai cùng chia sẻ trạng thái của mình. */
-function resolveActivity(uid, presence) {
-  const mine = getSettings().activityStatus || "everyone";
-  const theirs = presence?.visibility || "everyone";
-  const isFriend = !!uid && (connectedUids.has(uid) || uid === currentChatPartnerUid);
-  const hidden =
-    mine === "none" ||
-    theirs === "none" ||
-    (mine === "friends" && !isFriend) ||
-    (theirs === "friends" && !isFriend);
-
-  document.body.classList.toggle("activity-hidden", mine === "none");
-  if (hidden) return { online: false, hidden: true, text: "Ẩn trạng thái hoạt động" };
-
-  const online = !!presence?.online;
-  return { online, hidden: false, text: formatActivityStatus(presence?.lastSeen, { online }) };
-}
-
-function refreshActivityDisplays() {
-  document.querySelectorAll(".status-dot[data-uid]").forEach((dot) => {
-    updateStatusDot(dot, presenceCache.get(dot.dataset.uid) || { online: false });
-  });
-  document.querySelectorAll(".user-activity[data-uid]").forEach((el) => {
-    const info = resolveActivity(el.dataset.uid, presenceCache.get(el.dataset.uid) || { online: false });
-    el.textContent = info.hidden ? "" : info.text;
-    el.classList.toggle("online", info.online && !info.hidden);
-    el.classList.toggle("hidden", info.hidden);
-  });
-  if (currentChatPartnerUid && currentUser) {
-    updateChatHeaderStatus(presenceCache.get(currentChatPartnerUid) || { online: false });
-  }
-}
-
-window.addEventListener("settings:changed", (e) => {
-  if (e.detail?.key !== "activityStatus") return;
-  const value = getSettings().activityStatus || "everyone";
-  if (presenceUid) setActivityVisibility(presenceUid, value);
-  if (currentUser) updateActivityStatus(currentUser.uid, value).catch(() => {});
-  refreshActivityDisplays();
-});
-
-setInterval(refreshActivityDisplays, 30_000);
-
 onAuthStateChanged(auth, async (u) => {
   const previousUid = presenceUid;
   currentUser = u;
   if (u) {
     presenceUid = u.uid;
     await ensureUserProfile(u);
-    const myProfile = await getUserProfile(u.uid);
-    if (["everyone", "friends", "none"].includes(myProfile?.activityStatus)) {
-      updateSetting("activityStatus", myProfile.activityStatus);
-    }
-    setPresence(u.uid, getSettings().activityStatus || "everyone");
+    setPresence(u.uid);
     setMyStatus(true);
-    refreshActivityDisplays();
     await refreshConnections();
     
     // Restore last opened chat
@@ -162,9 +115,7 @@ onAuthStateChanged(auth, async (u) => {
     // Đánh dấu offline ngay khi đăng xuất thay vì đợi onDisconnect.
     if (previousUid) setOffline(previousUid);
     presenceUid = null;
-    connectedUids = new Set();
     setMyStatus(false);
-    document.body.classList.remove("activity-hidden");
     // Clean up all presence listeners
     presenceUnsubscribes.forEach(unsub => unsub());
     presenceUnsubscribes.clear();
@@ -184,7 +135,7 @@ window.addEventListener("pagehide", () => {
 });
 window.addEventListener("pageshow", () => {
   if (presenceUid && currentUser) {
-    setPresence(presenceUid, getSettings().activityStatus || "everyone");
+    setPresence(presenceUid);
     setMyStatus(true);
   }
 });
@@ -262,7 +213,6 @@ async function refreshConnections() {
   const users = await getConnectedUsers(currentUser.uid);
   const blocked = await getBlockedUids(currentUser.uid);
   const filteredUsers = users.filter((u) => !blocked.includes(u));
-  connectedUids = new Set(filteredUsers);
   const list = $("connections");
   if (!list) return;
   list.innerHTML = "";
@@ -293,11 +243,8 @@ async function refreshConnections() {
     const uidEl = document.createElement("span");
     uidEl.className = "user-username";
     uidEl.textContent = "Đang tải...";
-    const activityEl = document.createElement("span");
-    activityEl.className = "user-activity hidden";
-    activityEl.dataset.uid = uid;
-    info.append(nm, uidEl, activityEl);
-
+    info.append(nm, uidEl);
+    
     // Online status indicator
     const statusDot = document.createElement("span");
     statusDot.className = "status-dot";
@@ -327,13 +274,6 @@ async function refreshConnections() {
       presenceCache.set(uid, presence || { online: false });
       const dot = document.querySelector(`#connections .status-dot[data-uid="${uid}"]`);
       if (dot) updateStatusDot(dot, presence || { online: false });
-      const activity = document.querySelector(`#connections .user-activity[data-uid="${uid}"]`);
-      if (activity) {
-        const info = resolveActivity(uid, presence || { online: false });
-        activity.textContent = info.hidden ? "" : info.text;
-        activity.classList.toggle("online", info.online && !info.hidden);
-        activity.classList.toggle("hidden", info.hidden);
-      }
       // Also update chat header if this is the current chat partner
       if (uid === currentChatPartnerUid) {
         updateChatHeaderStatus(presence || { online: false });
@@ -344,18 +284,21 @@ async function refreshConnections() {
     list.appendChild(li);
   });
   
-  refreshActivityDisplays();
   // Báo cho notifications.js đồng bộ lại danh sách theo dõi tin nhắn.
   window.dispatchEvent(new CustomEvent("connections:changed"));
 }
 
+function lastSeenText(presence) {
+  const text = formatLastSeen(presence?.lastSeen);
+  return text ? `Xem lần cuối ${text}` : "Ngoại tuyến";
+}
+
 function updateStatusDot(dot, presence) {
   if (!dot) return;
-  const info = resolveActivity(dot.dataset.uid, presence);
-  dot.classList.toggle("online", info.online && !info.hidden);
-  dot.classList.toggle("offline", !info.online && !info.hidden);
-  dot.classList.toggle("hidden", info.hidden);
-  dot.title = info.text;
+  const online = !!presence?.online;
+  dot.classList.toggle("online", online);
+  dot.classList.toggle("offline", !online);
+  dot.title = online ? "Trực tuyến" : lastSeenText(presence);
 }
 
 function isNearBottom(box) {
@@ -818,17 +761,15 @@ function updateChatHeaderStatus(presence) {
   const statusEl = $("chatStatus");
   if (!statusEl) return;
   const avatar = $("chatAvatar");
-  const info = resolveActivity(currentChatPartnerUid, presence);
-  const detail = info.text;
-  statusEl.textContent = currentPartnerLabel && !info.hidden ? `${currentPartnerLabel} • ${detail}` : detail;
-  statusEl.classList.toggle("online", info.online && !info.hidden);
-  statusEl.classList.toggle("offline", !info.online && !info.hidden);
-  statusEl.classList.toggle("hidden", info.hidden);
+  const online = !!presence?.online;
+  const detail = online ? "Trực tuyến" : lastSeenText(presence);
+  statusEl.textContent = currentPartnerLabel ? `${currentPartnerLabel} • ${detail}` : detail;
+  statusEl.classList.toggle("online", online);
+  statusEl.classList.toggle("offline", !online);
   if (avatar) {
     avatar.classList.toggle("has-presence", !!currentChatPartnerUid);
-    avatar.classList.toggle("online", info.online && !!currentChatPartnerUid && !info.hidden);
-    avatar.classList.toggle("offline", !info.online && !!currentChatPartnerUid && !info.hidden);
-    avatar.classList.toggle("hidden", info.hidden);
+    avatar.classList.toggle("online", online && !!currentChatPartnerUid);
+    avatar.classList.toggle("offline", !online && !!currentChatPartnerUid);
   }
 }
 
@@ -956,6 +897,7 @@ async function openChat(otherUid) {
   }
 
   box.innerHTML = "";
+  box.innerHTML = "";
   renderedMsgIds.clear();
   stickToBottom = true;
   unseenWhileAway = 0;
@@ -964,7 +906,6 @@ async function openChat(otherUid) {
 
   unsubscribeMessages = listenMessages(chatIdAtOpen, async (msgs) => {
     if (currentChatId !== chatIdAtOpen || sessionId !== chatSessionId) return;
-    updateRenderedTimes(box, msgs);
     const newMsgs = msgs.filter(m => !renderedMsgIds.has(m.id));
     if (newMsgs.length === 0) {
       if (firstSnapshot) {
@@ -1071,20 +1012,14 @@ async function openChat(otherUid) {
         }
       }
 
-      // Sent time + status indicator for outgoing messages
-      if (mine) {
-        const meta = document.createElement("div");
-        meta.className = "msg-meta msg-meta-out";
-        meta.appendChild(createMessageTime(m));
+      // Add status indicator for outgoing messages
+      if (mine && !m.recalled) {
         const statusSpan = document.createElement("span");
         statusSpan.className = "msg-status";
         if ((m.status || "sent") === "seen") statusSpan.classList.add("seen");
         statusSpan.dataset.msgId = m.id;
         statusSpan.textContent = getStatusText(m.status || "sent");
-        meta.appendChild(statusSpan);
-        bubble.appendChild(meta);
-      } else {
-        bubble.appendChild(createMessageTime(m, "msg-time-in"));
+        bubble.appendChild(statusSpan);
       }
 
       const more = document.createElement("button");
@@ -1249,7 +1184,6 @@ async function openGroupChat(groupId, groupName) {
 
   unsubscribeMessages = listenMessages(groupId, async (msgs) => {
     if (currentChatId !== groupId || sessionId !== chatSessionId) return;
-    updateRenderedTimes(box, msgs);
     const newMsgs = msgs.filter(m => !renderedMsgIds.has(m.id));
     if (newMsgs.length === 0) return;
     newMsgs.forEach((m) => renderedMsgIds.add(m.id));
@@ -1291,7 +1225,6 @@ async function openGroupChat(groupId, groupName) {
       if (m.attachment) renderAttachment(bubble, m.attachment);
       else if (m.imageUrl) bubble.appendChild(createMessageImage(m.imageUrl, "Ảnh"));
       if (m.text) bubble.appendChild(document.createTextNode(m.text));
-      bubble.appendChild(createMessageTime(m, mine ? "msg-time-out" : "msg-time-in"));
 
       const more = document.createElement("button");
       more.type = "button";
@@ -1508,41 +1441,6 @@ function getStatusText(status) {
     case "sent": return "Đã gửi";
     default: return "Đã gửi";
   }
-}
-
-function formatMessageTime(createdAt) {
-  if (!createdAt) return "";
-  try {
-    const ms = typeof createdAt.toMillis === "function" ? createdAt.toMillis()
-      : typeof createdAt.toDate === "function" ? createdAt.toDate().getTime()
-      : createdAt instanceof Date ? createdAt.getTime()
-      : typeof createdAt === "number" ? createdAt
-      : NaN;
-    if (!Number.isFinite(ms) || ms <= 0) return "";
-    return new Date(ms).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
-  } catch {
-    return "";
-  }
-}
-
-function createMessageTime(m, extraClass = "") {
-  const time = document.createElement("span");
-  time.className = "msg-time" + (extraClass ? " " + extraClass : "");
-  time.dataset.msgId = m.id;
-  time.textContent = formatMessageTime(m.createdAt);
-  return time;
-}
-
-function updateRenderedTimes(box, msgs) {
-  if (!box) return;
-  const emptyTimes = box.querySelectorAll(".msg-time:empty");
-  if (!emptyTimes.length) return;
-  const byId = new Map(msgs.map((m) => [m.id, m]));
-  emptyTimes.forEach((el) => {
-    const m = byId.get(el.dataset.msgId);
-    const time = m && formatMessageTime(m.createdAt);
-    if (time) el.textContent = time;
-  });
 }
 
 window.addEventListener("requests:changed", () => {

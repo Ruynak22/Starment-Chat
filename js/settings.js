@@ -5,7 +5,6 @@ import { resetPassword, friendlyError } from "./auth.js";
 const STORAGE_KEY = "starment_settings";
 const THEMES = ["dark", "light", "system"];
 const ACCENTS = ["blue", "purple", "green", "orange", "pink"];
-const ACTIVITY_OPTIONS = ["everyone", "friends", "none"];
 
 const DEFAULTS = {
   theme: "dark",
@@ -19,7 +18,6 @@ const DEFAULTS = {
   compact: false,
   readReceipts: true,
   typingIndicator: true,
-  activityStatus: "everyone",
   animations: true,
   sidebarCollapsed: false,
   uiSounds: true,
@@ -47,7 +45,6 @@ function loadSettings() {
   settings = { ...DEFAULTS, ...raw };
   if (!THEMES.includes(settings.theme)) settings.theme = DEFAULTS.theme;
   if (!ACCENTS.includes(settings.accent)) settings.accent = DEFAULTS.accent;
-  if (!ACTIVITY_OPTIONS.includes(settings.activityStatus)) settings.activityStatus = DEFAULTS.activityStatus;
   BOOL_KEYS.forEach((key) => {
     if (typeof settings[key] !== "boolean") settings[key] = DEFAULTS[key];
   });
