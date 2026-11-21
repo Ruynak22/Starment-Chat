@@ -9,6 +9,7 @@ import { setTyping } from "./presence.js";
 import { listenTyping } from "./typing.js";
 import { listenPresence } from "./presence.js";
 import { getSettings } from "./settings.js";
+import { t } from "./i18n.js";
 import { formatDuration as formatVoiceDuration } from "./voice.js";
 import { db } from "./firebase-config.js";
 
@@ -152,7 +153,7 @@ async function refreshConnections() {
   if (reqBox) {
     reqBox.innerHTML = "";
     if (reqs.length === 0) {
-      reqBox.innerHTML = '<li class="user-empty">Không có lời mời nào</li>';
+      reqBox.innerHTML = `<li class="user-empty">${t("status.noRequests", "Không có lời mời nào")}</li>`;
     }
     reqs.forEach((r) => {
       const li = document.createElement("li");
@@ -163,7 +164,7 @@ async function refreshConnections() {
       const info = document.createElement("div");
       info.className = "user-info";
       const nm = document.createElement("strong");
-      nm.textContent = "Người dùng";
+      nm.textContent = t("status.user", "Người dùng");
       nm.dataset.uid = r.fromUid;
       
       // Online status indicator for requests
@@ -242,7 +243,7 @@ async function refreshConnections() {
     nm.textContent = uid.slice(0, 8) + "…";
     const uidEl = document.createElement("span");
     uidEl.className = "user-username";
-    uidEl.textContent = "Đang tải...";
+    uidEl.textContent = t("app.loading", "Đang tải...");
     info.append(nm, uidEl);
     
     // Online status indicator
@@ -290,7 +291,7 @@ async function refreshConnections() {
 
 function lastSeenText(presence) {
   const text = formatLastSeen(presence?.lastSeen);
-  return text ? `Xem lần cuối ${text}` : "Ngoại tuyến";
+  return text ? t("app.lastSeen", "Xem lần cuối {time}", { time: text }) : t("app.offline", "Ngoại tuyến");
 }
 
 function updateStatusDot(dot, presence) {
@@ -298,7 +299,7 @@ function updateStatusDot(dot, presence) {
   const online = !!presence?.online;
   dot.classList.toggle("online", online);
   dot.classList.toggle("offline", !online);
-  dot.title = online ? "Trực tuyến" : lastSeenText(presence);
+  dot.title = online ? t("app.online", "Trực tuyến") : lastSeenText(presence);
 }
 
 function isNearBottom(box) {
@@ -345,7 +346,7 @@ function openImageViewer(url, alt) {
   const img = $("imageViewerImg");
   if (!viewer || !img || !url) return;
   img.src = url;
-  img.alt = alt || "Ảnh";
+  img.alt = alt || t("status.image", "Ảnh");
   viewer.classList.remove("hidden");
   requestAnimationFrame(() => viewer.classList.add("show"));
   document.body.classList.add("viewer-open");
@@ -365,7 +366,7 @@ function closeImageViewer() {
 function createMessageImage(src, alt, width, height) {
   const img = document.createElement("img");
   img.className = "msg-img loading";
-  img.alt = alt || "Ảnh";
+  img.alt = alt || t("status.image", "Ảnh");
   img.loading = "lazy";
   img.decoding = "async";
   if (width && height) {
@@ -463,7 +464,7 @@ function showMessageMenu(msg, x, y) {
   const mine = msg.senderUid === currentUser.uid;
   const items = [];
 
-  items.push({ icon: "↩️", label: "Trả lời", run: () => startReply(msg) });
+  items.push({ icon: "↩️", label: t("app.reply", "Trả lời"), run: () => startReply(msg) });
 
   if (typeof msg.text === "string" && msg.text.trim()) {
     items.push({
@@ -472,9 +473,9 @@ function showMessageMenu(msg, x, y) {
       run: async () => {
         try {
           await navigator.clipboard.writeText(msg.text);
-          notify("Đã sao chép tin nhắn.");
+          notify(t("app.copied", "Đã sao chép tin nhắn."));
         } catch {
-          notify("Không sao chép được.");
+          notify(t("app.copyFail", "Không sao chép được."));
         }
       }
     });
@@ -484,12 +485,12 @@ function showMessageMenu(msg, x, y) {
     const pinned = pinnedMsgIds.has(msg.id);
     items.push({
       icon: pinned ? "📌" : "📍",
-      label: pinned ? "Bỏ ghim" : "Ghim tin nhắn",
+      label: pinned ? t("app.unpinMsg", "Bỏ ghim tin nhắn") : t("app.pinMsg", "Ghim tin nhắn"),
       run: async () => {
         try {
           if (pinned) await unpinMessage(currentChatId, msg.id);
           else await pinMessage(currentChatId, msg.id, currentUser.uid);
-          notify(pinned ? "Đã bỏ ghim." : "Đã ghim tin nhắn.");
+          notify(pinned ? t("app.unpinned", "Đã bỏ ghim.") : t("app.pinned", "Đã ghim tin nhắn."));
         } catch (err) {
           notify(err?.message || "Không cập nhật được tin nhắn ghim.");
         }
@@ -500,13 +501,13 @@ function showMessageMenu(msg, x, y) {
   if (mine) {
     items.push({
       icon: "↩",
-      label: "Thu hồi",
+      label: t("app.retract", "Thu hồi"),
       danger: true,
       run: async () => {
-        if (!confirm("Thu hồi tin nhắn này? Mọi người sẽ thấy thông báo đã thu hồi.")) return;
+        if (!confirm(t("app.retractConfirm", "Thu hồi tin nhắn này? Mọi người sẽ thấy thông báo đã thu hồi."))) return;
         try {
           await recallMessage(currentChatId, msg.id);
-          notify("Đã thu hồi tin nhắn.");
+          notify(t("app.retracted", "Đã thu hồi tin nhắn."));
         } catch (err) {
           notify(err?.message || "Không thu hồi được.");
         }
@@ -516,14 +517,14 @@ function showMessageMenu(msg, x, y) {
 
   items.push({
     icon: "🗑",
-    label: mine ? "Xóa tin nhắn" : "Xóa khỏi cuộc trò chuyện",
+    label: mine ? t("app.deleteMsg", "Xóa tin nhắn") : t("app.deleteForMe", "Xóa khỏi cuộc trò chuyện"),
     danger: true,
     run: async () => {
-      if (!confirm("Xóa tin nhắn này khỏi cuộc trò chuyện của bạn?")) return;
+      if (!confirm(t("app.deleteConfirm", "Xóa tin nhắn này khỏi cuộc trò chuyện của bạn?"))) return;
       try {
         await deleteMessageForMe(currentChatId, msg.id, currentUser.uid);
         document.querySelector(`.msg[data-msg-id="${msg.id}"], .msg-system[data-msg-id="${msg.id}"]`)?.remove();
-        notify("Đã xóa tin nhắn.");
+        notify(t("app.deleted", "Đã xóa tin nhắn."));
       } catch (err) {
         notify(err?.message || "Không xóa được.");
       }
@@ -609,11 +610,11 @@ function fileIconFor(mime, name) {
 
 function attachmentPreviewText(msg) {
   if (!msg) return "";
-  if (msg.imageUrl) return "📷 Ảnh";
+  if (msg.imageUrl) return "📷 " + t("status.image", "Ảnh");
   if (msg.attachment) {
-    if (msg.attachment.kind === "image") return "📷 Ảnh";
-    if (msg.attachment.kind === "audio") return "🎤 Tin nhắn thoại";
-    return "📎 " + (msg.attachment.name || "Tệp");
+    if (msg.attachment.kind === "image") return "📷 " + t("status.image", "Ảnh");
+    if (msg.attachment.kind === "audio") return "🎤 " + t("status.voice", "Tin nhắn thoại");
+    return "📎 " + (msg.attachment.name || t("status.file", "Tệp"));
   }
   return msg.text || "";
 }
@@ -631,10 +632,10 @@ function createFileCard(attachment) {
   meta.className = "msg-file-meta";
   const name = document.createElement("span");
   name.className = "msg-file-name";
-  name.textContent = attachment.name || "Tệp";
+  name.textContent = attachment.name || t("status.file", "Tệp");
   const size = document.createElement("span");
   size.className = "msg-file-size";
-  size.textContent = attachment.size ? formatFileSize(attachment.size) : "Tải xuống";
+  size.textContent = attachment.size ? formatFileSize(attachment.size) : t("doc.download", "Tải xuống");
   meta.append(name, size);
 
   const dl = document.createElement("span");
@@ -649,7 +650,7 @@ function createFileCard(attachment) {
     try {
       await downloadAttachment(attachment);
     } catch (err) {
-      window.notify?.(err?.message || "Không tải được tệp.");
+      window.notify?.(err?.message || t("app.downloadFail", "Không tải được tệp."));
     } finally {
       card.classList.remove("downloading");
     }
@@ -671,12 +672,12 @@ function createVoiceCard(attachment) {
   play.type = "button";
   play.className = "voice-play";
   play.textContent = "▶";
-  play.title = "Phát tin nhắn thoại";
+  play.title = t("app.playVoice", "Phát tin nhắn thoại");
 
   const track = document.createElement("button");
   track.type = "button";
   track.className = "voice-track";
-  track.title = "Chọn vị trí phát";
+  track.title = t("app.seek", "Chọn vị trí phát");
   const fill = document.createElement("span");
   fill.className = "voice-track-fill";
   track.appendChild(fill);
@@ -721,7 +722,7 @@ function createVoiceCard(attachment) {
     e.stopPropagation();
     if (!audio.src || play.disabled) return;
     if (audio.paused) {
-      audio.play().catch(() => { window.notify?.("Không phát được tin nhắn thoại."); });
+      audio.play().catch(() => { window.notify?.(t("app.playFail", "Không phát được tin nhắn thoại.")); });
     } else {
       audio.pause();
     }
@@ -762,7 +763,7 @@ function updateChatHeaderStatus(presence) {
   if (!statusEl) return;
   const avatar = $("chatAvatar");
   const online = !!presence?.online;
-  const detail = online ? "Trực tuyến" : lastSeenText(presence);
+  const detail = online ? t("app.online", "Trực tuyến") : lastSeenText(presence);
   statusEl.textContent = currentPartnerLabel ? `${currentPartnerLabel} • ${detail}` : detail;
   statusEl.classList.toggle("online", online);
   statusEl.classList.toggle("offline", !online);
@@ -778,7 +779,7 @@ function updatePinButton() {
   if (!btn || !currentChatPartnerUid) return;
   const pinned = isChatPinned(currentChatPartnerUid);
   btn.classList.toggle("active", pinned);
-  btn.title = pinned ? "Bỏ ghim" : "Ghim";
+  btn.title = pinned ? t("ctx.unpin", "Bỏ ghim") : t("ctx.pin", "Ghim");
 }
 
 async function togglePinChat() {
@@ -798,11 +799,11 @@ async function toggleBlockChat() {
   const blocked = await isBlocked(currentUser.uid, currentChatPartnerUid);
   if (blocked) {
     await unblockUser(currentUser.uid, currentChatPartnerUid);
-    notify("Đã bỏ chắn.");
+    notify(t("app.unblocked", "Đã bỏ chắn."));
   } else {
     if (confirm(`Chặn ${currentChatPartnerUid.slice(0, 8)}…? Tin nhắn của họ sẽ không hiện trong danh sách.`)) {
       await blockUser(currentUser.uid, currentChatPartnerUid);
-      notify("Đã chắn.");
+      notify(t("app.blocked", "Đã chắn."));
       closeChat();
     }
   }
@@ -811,7 +812,7 @@ async function toggleBlockChat() {
 
 async function removeCurrentConnection() {
   if (!currentChatPartnerUid) return;
-  if (confirm("Xóa kết nối với người này?")) {
+  if (confirm(t("app.removeConnectionConfirm", "Xóa kết nối với người này?"))) {
     await removeConnection(currentUser.uid, currentChatPartnerUid);
     closeChat();
     refreshConnections();
@@ -867,7 +868,7 @@ async function openChat(otherUid) {
   const blockBtn = $("btnBlockChat");
   if (blockBtn) {
     const blocked = await isBlocked(currentUser.uid, otherUid);
-    blockBtn.title = blocked ? "Bỏ chắn" : "Chặn";
+    blockBtn.title = blocked ? t("ctx.unblock", "Bỏ chắn") : t("ctx.block", "Chặn");
   }
 
   // Hiển thị các tin đã ghim
@@ -945,8 +946,8 @@ async function openChat(otherUid) {
         const label = document.createElement("span");
         const recalled = m.recalled || m.retracted;
         label.textContent = mine
-          ? (recalled ? "Bạn đã thu hồi một tin nhắn" : "Bạn đã xóa một tin nhắn")
-          : (recalled ? "Tin nhắn đã được thu hồi" : "Tin nhắn đã được xóa");
+          ? (recalled ? t("app.recalledByYou", "Bạn đã thu hồi một tin nhắn") : t("app.deletedByYou", "Bạn đã xóa một tin nhắn"))
+          : (recalled ? t("app.recalled", "Tin nhắn đã được thu hồi") : t("app.deletedMsg", "Tin nhắn đã được xóa"));
         notice.append(icon, label);
         box.appendChild(notice);
         continue;
@@ -974,7 +975,7 @@ async function openChat(otherUid) {
           const repliedProfile = repliedMsg.senderUid === currentUser.uid
             ? null
             : resolvedProfiles.get(repliedMsg.senderUid);
-          const repliedName = repliedMsg.senderUid === currentUser.uid ? "Bạn" : (repliedProfile?.displayName || "Người dùng");
+          const repliedName = repliedMsg.senderUid === currentUser.uid ? t("status.you", "Bạn") : (repliedProfile?.displayName || t("status.user", "Người dùng"));
           const replyName = document.createElement("span");
           replyName.className = "reply-name";
           replyName.textContent = repliedName;
@@ -997,7 +998,7 @@ async function openChat(otherUid) {
         renderAttachment(bubble, m.attachment);
         hasMedia = true;
       } else if (m.imageUrl) {
-        bubble.appendChild(createMessageImage(m.imageUrl, "Ảnh"));
+        bubble.appendChild(createMessageImage(m.imageUrl, t("status.image", "Ảnh")));
         hasMedia = true;
       }
 
@@ -1026,8 +1027,8 @@ async function openChat(otherUid) {
       more.type = "button";
       more.className = "msg-more";
       more.textContent = "⋯";
-      more.title = "Tùy chọn tin nhắn";
-      more.setAttribute("aria-label", "Tùy chọn tin nhắn");
+      more.title = t("app.msgOptions", "Tùy chọn tin nhắn");
+      more.setAttribute("aria-label", t("app.msgOptions", "Tùy chọn tin nhắn"));
       more.onclick = (e) => {
         e.stopPropagation();
         const rect = more.getBoundingClientRect();
@@ -1104,7 +1105,7 @@ async function openChat(otherUid) {
     indicator.dataset.active = String(othersTyping);
     clearTimeout(typingStaleTimer);
     if (othersTyping) {
-      indicator.innerHTML = '<span class="typing-text">Đang nhập</span><span class="typing-dots" aria-hidden="true"><i></i><i></i><i></i></span>';
+      indicator.innerHTML = `<span class="typing-text">${t("app.typing", "Đang nhập")}</span><span class="typing-dots" aria-hidden="true"><i></i><i></i><i></i></span>`;
       // Dọn trạng thái nếu người kia ngừng gõ mà không gửi tín hiệu tắt.
       typingStaleTimer = setTimeout(() => {
         indicator.textContent = "";
@@ -1207,8 +1208,8 @@ async function openGroupChat(groupId, groupName) {
         const label = document.createElement("span");
         const recalled = m.recalled || m.retracted;
         label.textContent = mine
-          ? (recalled ? "Bạn đã thu hồi một tin nhắn" : "Bạn đã xóa một tin nhắn")
-          : (recalled ? "Tin nhắn đã được thu hồi" : "Tin nhắn đã được xóa");
+          ? (recalled ? t("app.recalledByYou", "Bạn đã thu hồi một tin nhắn") : t("app.deletedByYou", "Bạn đã xóa một tin nhắn"))
+          : (recalled ? t("app.recalled", "Tin nhắn đã được thu hồi") : t("app.deletedMsg", "Tin nhắn đã được xóa"));
         notice.append(icon, label);
         box.appendChild(notice);
         continue;
@@ -1220,17 +1221,17 @@ async function openGroupChat(groupId, groupName) {
       const sender = document.createElement("span");
       sender.className = "msg-sender";
       const sp = resolvedProfiles.get(m.senderUid);
-      sender.textContent = mine ? "Bạn" : (sp?.displayName || m.senderUid.slice(0, 8));
+      sender.textContent = mine ? t("status.you", "Bạn") : (sp?.displayName || m.senderUid.slice(0, 8));
       bubble.appendChild(sender);
       if (m.attachment) renderAttachment(bubble, m.attachment);
-      else if (m.imageUrl) bubble.appendChild(createMessageImage(m.imageUrl, "Ảnh"));
+      else if (m.imageUrl) bubble.appendChild(createMessageImage(m.imageUrl, t("status.image", "Ảnh")));
       if (m.text) bubble.appendChild(document.createTextNode(m.text));
 
       const more = document.createElement("button");
       more.type = "button";
       more.className = "msg-more";
       more.textContent = "⋯";
-      more.title = "Tùy chọn tin nhắn";
+      more.title = t("app.msgOptions", "Tùy chọn tin nhắn");
       more.onclick = (e) => {
         e.stopPropagation();
         const rect = more.getBoundingClientRect();
@@ -1288,7 +1289,7 @@ function closeChat() {
   const composer = $("composer");
   if (composer) composer.classList.add("hidden");
   const nameEl = $("chatName");
-  if (nameEl) nameEl.textContent = "Chọn một cuộc trò chuyện";
+  if (nameEl) nameEl.textContent = t("chat.selectConversation", "Chọn một cuộc trò chuyện");
   currentPartnerLabel = "";
   const statusEl = $("chatStatus");
   if (statusEl) {
@@ -1332,7 +1333,7 @@ function showReplyBar(msg) {
     composer.parentNode.insertBefore(replyBar, composer);
   }
   getProfileCached(msg.senderUid).then(p => {
-    const name = msg.senderUid === currentUser.uid ? "Bạn" : (p?.displayName || "Người dùng");
+    const name = msg.senderUid === currentUser.uid ? t("status.you", "Bạn") : (p?.displayName || t("status.user", "Người dùng"));
     const label = document.createElement("span");
     label.className = "reply-bar-label";
     label.textContent = `Trả lời cho ${name}`;
@@ -1408,18 +1409,18 @@ async function renderPinnedMessages(chatId, box) {
     item.className = "pinned-item";
     const preview = document.createElement("span");
     preview.className = "pinned-preview";
-    preview.textContent = attachmentPreviewText(m) || "Tin nhắn đã ghim";
+    preview.textContent = attachmentPreviewText(m) || t("app.pinnedMsg", "Tin nhắn đã ghim");
     const unpin = document.createElement("button");
     unpin.type = "button";
     unpin.className = "pinned-unpin";
     unpin.textContent = "✕";
-    unpin.title = "Bỏ ghim";
-    unpin.setAttribute("aria-label", "Bỏ ghim");
+    unpin.title = t("ctx.unpin", "Bỏ ghim");
+    unpin.setAttribute("aria-label", t("ctx.unpin", "Bỏ ghim"));
     unpin.onclick = async (e) => {
       e.stopPropagation();
       try {
         await unpinMessage(chatId, m.id);
-        notify("Đã bỏ ghim.");
+        notify(t("app.unpinned", "Đã bỏ ghim."));
       } catch (err) {
         notify(err?.message || "Không bỏ ghim được.");
       }
@@ -1436,10 +1437,10 @@ async function renderPinnedMessages(chatId, box) {
 
 function getStatusText(status) {
   switch (status) {
-    case "seen": return "Đã xem";
-    case "delivered": return "Đã gửi";
-    case "sent": return "Đã gửi";
-    default: return "Đã gửi";
+    case "seen": return t("status.seen", "Đã xem");
+    case "delivered": return t("status.sent", "Đã gửi");
+    case "sent": return t("status.sent", "Đã gửi");
+    default: return t("status.sent", "Đã gửi");
   }
 }
 

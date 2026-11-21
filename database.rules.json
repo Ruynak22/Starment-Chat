@@ -7,9 +7,15 @@
         "$mediaId": {
           ".read": "auth != null",
           ".write": "auth != null",
-          "data": { ".validate": "newData.isString() && newData.val().length <= 7000000" },
-          "size": { ".validate": "newData.isNumber() && newData.val() <= 5242880" }
+          "data": { ".validate": "newData.isString() && newData.val().length <= 14000000" },
+          "size": { ".validate": "newData.isNumber() && newData.val() <= 10485760" }
         }
+      }
+    },
+    "userDocuments": {
+      "$uid": {
+        ".read": "auth != null && auth.uid == $uid",
+        ".write": "auth != null && auth.uid == $uid"
       }
     }
   }

@@ -1,5 +1,6 @@
 import { auth } from "./firebase-config.js";
 import { resetPassword, friendlyError } from "./auth.js";
+import { SUPPORTED_LANGUAGES, setLanguage, t } from "./i18n.js";
 
 
 const STORAGE_KEY = "starment_settings";
@@ -45,6 +46,9 @@ function loadSettings() {
   settings = { ...DEFAULTS, ...raw };
   if (!THEMES.includes(settings.theme)) settings.theme = DEFAULTS.theme;
   if (!ACCENTS.includes(settings.accent)) settings.accent = DEFAULTS.accent;
+  if (!SUPPORTED_LANGUAGES.some((lang) => lang.code === settings.language)) {
+    settings.language = DEFAULTS.language;
+  }
   BOOL_KEYS.forEach((key) => {
     if (typeof settings[key] !== "boolean") settings[key] = DEFAULTS[key];
   });
@@ -101,10 +105,11 @@ export function updateSetting(key, value) {
 
 function resetSettings() {
   settings = { ...DEFAULTS };
+  setLanguage(settings.language);
   persist();
   applySettings();
   syncControls();
-  window.notify?.("Đã đặt lại cài đặt mặc định");
+  window.notify?.(t("toast.reset", "Đã đặt lại cài đặt mặc định"));
   window.dispatchEvent(
     new CustomEvent("settings:changed", {
       detail: { key: null, value: null, settings: getSettings() }
@@ -119,7 +124,7 @@ export function openSettings() {
   const modal = settingsModal();
   if (!modal) return;
   const emailEl = document.getElementById("settingsEmail");
-  if (emailEl) emailEl.textContent = auth.currentUser?.email || "Chưa đăng nhập";
+  if (emailEl) emailEl.textContent = auth.currentUser?.email || t("set.notSignedIn", "Chưa đăng nhập");
   syncControls();
   modal.classList.remove("hidden", "closing");
   document.body.classList.add("modal-open");
@@ -161,17 +166,17 @@ function syncControls() {
 /* ---------- Quyền thông báo hệ thống ---------- */
 async function requestDesktopPermission() {
   if (!("Notification" in window)) {
-    window.notify?.("Trình duyệt không hỗ trợ thông báo hệ thống.");
+    window.notify?.(t("toast.notifUnsupported", "Trình duyệt không hỗ trợ thông báo hệ thống."));
     return false;
   }
   if (Notification.permission === "granted") return true;
   if (Notification.permission === "denied") {
-    window.notify?.("Thông báo đang bị chặn. Hãy mở khoá trong cài đặt trình duyệt.");
+    window.notify?.(t("toast.notifBlocked", "Thông báo đang bị chặn. Hãy mở khoá trong cài đặt trình duyệt."));
     return false;
   }
   try {
     const permission = await Notification.requestPermission();
-    if (permission !== "granted") window.notify?.("Bạn chưa cho phép hiển thị thông báo.");
+    if (permission !== "granted") window.notify?.(t("toast.notifDenied", "Bạn chưa cho phép hiển thị thông báo."));
     return permission === "granted";
   } catch {
     return false;
@@ -182,7 +187,7 @@ async function requestDesktopPermission() {
 async function sendPasswordReset(btn) {
   const email = auth.currentUser?.email;
   if (!email) {
-    window.notify?.("Bạn cần đăng nhập lại để đổi mật khẩu.");
+    window.notify?.(t("toast.loginRequired", "Bạn cần đăng nhập lại để đổi mật khẩu."));
     return;
   }
   const original = btn.textContent;
@@ -190,7 +195,7 @@ async function sendPasswordReset(btn) {
   btn.textContent = "Đang gửi…";
   try {
     await resetPassword(email);
-    window.notify?.(`Đã gửi email đặt lại mật khẩu tới ${email}`);
+    window.notify?.(`${t("toast.resetMail", "Đã gửi email đặt lại mật khẩu tới")} ${email}`);
   } catch (err) {
     window.notify?.(friendlyError(err, "reset"));
   } finally {
@@ -241,13 +246,16 @@ export function initSettings() {
     });
   });
 
-  // Ngôn ngữ
+  // Ngôn ngữ — đổi là dịch ngay toàn bộ giao diện
   const langSelect = document.getElementById("settingsLanguage");
   if (langSelect) {
     langSelect.addEventListener("change", () => {
+      setLanguage(langSelect.value);
       updateSetting("language", langSelect.value);
     });
   }
+
+  document.getElementById("btnSettingsReset")?.addEventListener("click", resetSettings);
 
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && !settingsModal()?.classList.contains("hidden")) closeSettings();

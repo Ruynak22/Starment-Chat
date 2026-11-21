@@ -17,6 +17,7 @@
         document.documentElement.dataset.theme = theme;
         var accents = ["blue", "purple", "green", "orange", "pink"];
         document.documentElement.dataset.accent = accents.indexOf(s.accent) >= 0 ? s.accent : "blue";
+        if (s.language) document.documentElement.lang = s.language;
       } catch (e) { /* ignore */ }
     })();
   </script>
@@ -42,19 +43,19 @@
             <span class="auth-logo">✦</span>
             <div>
               <h2>StarmentChat</h2>
-              <span class="hero-tag">Nhắn tin tức thời</span>
+              <span class="hero-tag" data-i18n="auth.tagline">Nhắn tin tức thời</span>
             </div>
           </div>
 
-          <h1 class="auth-hero-title">Trò chuyện <em>mượt mà</em><br />trong một không gian tinh tế.</h1>
-          <p class="auth-hero-desc">
+          <h1 class="auth-hero-title" data-i18n-html="auth.heroTitle">Trò chuyện <em>mượt mà</em><br />trong một không gian tinh tế.</h1>
+          <p class="auth-hero-desc" data-i18n="auth.heroDesc">
             Kết nối bạn bè, nhắn tin theo thời gian thực và chia sẻ tệp — tất cả
             trong một giao diện nhẹ nhàng, trong suốt và dễ chịu.
           </p>
           <ul class="auth-points">
-            <li><span class="dot-mark">01</span><span>Tin nhắn realtime, trạng thái đã gửi &amp; đã xem</span></li>
-            <li><span class="dot-mark">02</span><span>Gửi ảnh, tài liệu và tệp lớn</span></li>
-            <li><span class="dot-mark">03</span><span>Đồng bộ trên mọi thiết bị của bạn</span></li>
+            <li><span class="dot-mark">01</span><span data-i18n="auth.point1">Tin nhắn realtime, trạng thái đã gửi &amp; đã xem</span></li>
+            <li><span class="dot-mark">02</span><span data-i18n="auth.point2">Gửi ảnh, tài liệu và tệp lớn</span></li>
+            <li><span class="dot-mark">03</span><span data-i18n="auth.point3">Đồng bộ trên mọi thiết bị của bạn</span></li>
           </ul>
         </div>
 
@@ -65,65 +66,65 @@
         <div class="auth-brand">
           <span class="auth-logo">✦</span>
           <h1>StarmentChat</h1>
-          <p>Kết nối &amp; trò chuyện tức thời</p>
+          <p data-i18n="auth.brandDesc">Kết nối &amp; trò chuyện tức thời</p>
         </div>
 
         <div id="authPanel" class="auth-panel">
-          <div class="auth-tabs" role="tablist" aria-label="Đăng nhập hoặc đăng ký">
-            <button type="button" class="auth-tab active" data-tab="login" role="tab" aria-selected="true">Đăng nhập</button>
-            <button type="button" class="auth-tab" data-tab="register" role="tab" aria-selected="false">Đăng ký</button>
+          <div class="auth-tabs" role="tablist" data-i18n-aria="auth.login">
+            <button type="button" class="auth-tab active" data-tab="login" role="tab" aria-selected="true" data-i18n="auth.login">Đăng nhập</button>
+            <button type="button" class="auth-tab" data-tab="register" role="tab" aria-selected="false" data-i18n="auth.register">Đăng ký</button>
           </div>
 
           <!-- Đăng nhập -->
           <form id="loginForm" class="auth-form" autocomplete="on" novalidate>
             <label class="field">
-              <span>Email</span>
-              <input id="email" name="email" type="email" inputmode="email" placeholder="ban@example.com"
+              <span data-i18n="auth.email">Email</span>
+              <input id="email" name="email" type="email" inputmode="email" data-i18n-ph="auth.phEmail" placeholder="ban@example.com"
                      autocomplete="username" spellcheck="false" autocapitalize="none" />
             </label>
 
             <label class="field">
-              <span>Mật khẩu</span>
-              <input id="password" name="password" type="password" placeholder="••••••••"
+              <span data-i18n="auth.password">Mật khẩu</span>
+              <input id="password" name="password" type="password" data-i18n-ph="auth.phPassword" placeholder="••••••••"
                      autocomplete="current-password" />
             </label>
 
             <div class="auth-actions">
-              <button type="submit" id="btnLogin" class="btn btn-primary btn-block">Đăng nhập</button>
+              <button type="submit" id="btnLogin" class="btn btn-primary btn-block" data-i18n="auth.loginBtn">Đăng nhập</button>
             </div>
 
-            <button type="button" id="btnReset" class="btn btn-link">Quên mật khẩu?</button>
+            <button type="button" id="btnReset" class="btn btn-link" data-i18n="auth.forgot">Quên mật khẩu?</button>
             <p id="status" class="status-text" role="status" aria-live="polite"></p>
           </form>
 
           <!-- Đăng ký -->
           <form id="registerForm" class="auth-form hidden" autocomplete="on" novalidate>
             <label class="field">
-              <span>Username</span>
-              <input id="username" name="username" type="text" placeholder="nguyenvana"
+              <span data-i18n="auth.username">Username</span>
+              <input id="username" name="username" type="text" data-i18n-ph="auth.phUsername" placeholder="nguyenvana"
                      autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="20" />
             </label>
 
             <label class="field">
-              <span>Tên hiển thị</span>
-              <input id="displayName" name="name" type="text" placeholder="Nguyễn Văn A"
+              <span data-i18n="auth.displayName">Tên hiển thị</span>
+              <input id="displayName" name="name" type="text" data-i18n-ph="auth.phName" placeholder="Nguyễn Văn A"
                      autocomplete="name" maxlength="40" />
             </label>
 
             <label class="field">
-              <span>Email</span>
-              <input id="regEmail" name="email" type="email" inputmode="email" placeholder="ban@example.com"
+              <span data-i18n="auth.email">Email</span>
+              <input id="regEmail" name="email" type="email" inputmode="email" data-i18n-ph="auth.phEmail" placeholder="ban@example.com"
                      autocomplete="email" spellcheck="false" autocapitalize="none" />
             </label>
 
             <label class="field">
-              <span>Mật khẩu</span>
-              <input id="regPassword" name="new-password" type="password" placeholder="Ít nhất 6 ký tự"
+              <span data-i18n="auth.password">Mật khẩu</span>
+              <input id="regPassword" name="new-password" type="password" data-i18n-ph="auth.phPasswordHint" placeholder="Ít nhất 6 ký tự"
                      autocomplete="new-password" />
             </label>
 
             <div class="auth-actions">
-              <button type="submit" id="btnRegister" class="btn btn-primary btn-block">Đăng ký</button>
+              <button type="submit" id="btnRegister" class="btn btn-primary btn-block" data-i18n="auth.registerBtn">Đăng ký</button>
             </div>
 
             <p id="registerStatus" class="status-text" role="status" aria-live="polite"></p>
@@ -132,22 +133,22 @@
 
         <!-- ===================== QUÊN MẬT KHẨU ===================== -->
         <div id="resetPanel" class="reset-panel hidden">
-          <button type="button" id="btnResetBack" class="btn btn-link reset-back">← Quay lại đăng nhập</button>
+          <button type="button" id="btnResetBack" class="btn btn-link reset-back" data-i18n="auth.backLogin">← Quay lại đăng nhập</button>
 
-          <h2 class="reset-title">Quên mật khẩu</h2>
-          <p class="reset-desc">
+          <h2 class="reset-title" data-i18n="auth.resetTitle">Quên mật khẩu</h2>
+          <p class="reset-desc" data-i18n="auth.resetDesc">
             Nhập địa chỉ email của bạn. Chúng tôi sẽ gửi một liên kết để đặt lại mật khẩu.
           </p>
 
           <form id="resetForm" class="auth-form" autocomplete="on" novalidate>
             <label class="field">
-              <span>Email</span>
-              <input id="resetEmail" name="email" type="email" inputmode="email" placeholder="ban@example.com"
+              <span data-i18n="auth.email">Email</span>
+              <input id="resetEmail" name="email" type="email" inputmode="email" data-i18n-ph="auth.phEmail" placeholder="ban@example.com"
                      autocomplete="email" spellcheck="false" autocapitalize="none" />
             </label>
 
             <div class="auth-actions">
-              <button type="submit" id="btnResetSend" class="btn btn-primary btn-block">Gửi liên kết đặt lại</button>
+              <button type="submit" id="btnResetSend" class="btn btn-primary btn-block" data-i18n="auth.resetSend">Gửi liên kết đặt lại</button>
             </div>
 
             <p id="resetStatus" class="status-text" role="status" aria-live="polite"></p>
@@ -159,14 +160,14 @@
 
   <!-- ===================== ỨNG DỤNG CHÍNH ===================== -->
   <div id="appView" class="view app-view hidden">
-    <button type="button" id="btnSidebarExpand" class="sidebar-expand hidden" title="Mở thanh bên" aria-label="Mở thanh bên">
+    <button type="button" id="btnSidebarExpand" class="sidebar-expand hidden" data-i18n-title="side.openSidebar" data-i18n-aria="side.openSidebar" title="Mở thanh bên" aria-label="Mở thanh bên">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></svg>
     </button>
 
     <!-- Sidebar -->
     <aside class="sidebar">
       <header class="sidebar-header">
-        <button type="button" id="btnProfile" class="me" title="Sửa hồ sơ">
+        <button type="button" id="btnProfile" class="me" data-i18n-title="side.profile" data-i18n-aria="side.profile" title="Sửa hồ sơ">
           <div id="myAvatar" class="avatar">?</div>
           <div class="me-info">
             <strong id="myName">Bạn</strong>
@@ -175,17 +176,17 @@
         </button>
 
         <div class="header-actions">
-          <button type="button" id="btnSidebarToggle" class="btn btn-icon" title="Ẩn/hiện thanh bên" aria-label="Ẩn/hiện thanh bên">
+          <button type="button" id="btnSidebarToggle" class="btn btn-icon" data-i18n-title="side.hide" data-i18n-aria="side.hide" title="Ẩn/hiện thanh bên" aria-label="Ẩn/hiện thanh bên">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M15 9l-3 3 3 3"/></svg>
           </button>
-          <button type="button" id="btnNotifications" class="btn btn-icon" title="Thông báo" aria-label="Thông báo">
+          <button type="button" id="btnNotifications" class="btn btn-icon" data-i18n-title="side.notifications" data-i18n-aria="side.notifications" title="Thông báo" aria-label="Thông báo">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 1 0-12 0c0 5-2 6-2 6h16s-2-1-2-6"/><path d="M10.3 20a2 2 0 0 0 3.4 0"/></svg>
             <span id="notifBadge" class="notif-badge hidden">0</span>
           </button>
-          <button type="button" id="btnSettings" class="btn btn-icon" title="Cài đặt" aria-label="Cài đặt">
+          <button type="button" id="btnSettings" class="btn btn-icon" data-i18n-title="side.settings" data-i18n-aria="side.settings" title="Cài đặt" aria-label="Cài đặt">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9v.03a1.7 1.7 0 0 0 1.56 1.03H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 .97z"/></svg>
           </button>
-          <button type="button" id="btnLogout" class="btn btn-icon" title="Đăng xuất" aria-label="Đăng xuất">
+          <button type="button" id="btnLogout" class="btn btn-icon" data-i18n-title="side.logout" data-i18n-aria="side.logout" title="Đăng xuất" aria-label="Đăng xuất">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v9"/><path d="M6.4 5.6a8 8 0 1 0 11.2 0"/></svg>
           </button>
         </div>
@@ -197,22 +198,22 @@
             <span class="search-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg>
             </span>
-            <input id="searchInput" class="input" name="search" placeholder="Tìm @username, UID hoặc tên..."
-                   autocomplete="off" spellcheck="false" aria-label="Tìm người dùng" />
-            <button id="btnSearch" class="btn btn-primary btn-sm" type="button">Tìm</button>
+            <input id="searchInput" class="input" name="search" data-i18n-ph="side.searchPlaceholder" placeholder="Tìm @username, UID hoặc tên..."
+                   autocomplete="off" spellcheck="false" data-i18n-aria="side.search" aria-label="Tìm người dùng" />
+            <button id="btnSearch" class="btn btn-primary btn-sm" type="button" data-i18n="side.search">Tìm</button>
           </div>
           <ul id="searchResults" class="user-list search-results"></ul>
         </section>
 
         <section id="requestsSection" class="side-block">
-          <h2 class="side-title">Lời mời kết bạn</h2>
+          <h2 class="side-title" data-i18n="side.requests">Lời mời kết bạn</h2>
           <ul id="requests" class="user-list"></ul>
         </section>
 
         <section id="connectionsSection" class="side-block grow">
           <div class="side-head">
-            <h2 class="side-title">Kết nối</h2>
-            <button type="button" id="btnCreateGroup" class="btn btn-sm btn-ghost" title="Tạo nhóm">+ Nhóm</button>
+            <h2 class="side-title" data-i18n="side.connections">Kết nối</h2>
+            <button type="button" id="btnCreateGroup" class="btn btn-sm btn-ghost" data-i18n-title="group.title" data-i18n="side.newGroup" title="Tạo nhóm">+ Nhóm</button>
           </div>
           <ul id="connections" class="user-list"></ul>
         </section>
@@ -222,24 +223,27 @@
     <!-- Khu vực chat -->
     <main class="chat">
       <header class="chat-header">
-        <button type="button" id="btnBack" class="btn btn-icon chat-back" title="Quay lại" aria-label="Quay lại">
+        <button type="button" id="btnBack" class="btn btn-icon chat-back" data-i18n-title="chat.back" data-i18n-aria="chat.back" title="Quay lại" aria-label="Quay lại">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
         </button>
 
         <div class="chat-id">
           <div id="chatAvatar" class="avatar">?</div>
           <div class="chat-header-info">
-            <strong id="chatName">Chọn một cuộc trò chuyện</strong>
+            <strong id="chatName" data-i18n="chat.selectConversation">Chọn một cuộc trò chuyện</strong>
             <span id="chatStatus" class="chat-status"></span>
             <span id="chatStreak" class="chat-streak"></span>
           </div>
         </div>
 
         <div class="chat-header-actions">
-          <button type="button" id="btnPinChat" class="btn btn-icon" title="Ghim cuộc trò chuyện" aria-label="Ghim cuộc trò chuyện" aria-pressed="false">
+          <button type="button" id="btnWallpaper" class="btn btn-icon" data-i18n-title="chat.wallpaper" data-i18n-aria="chat.wallpaper" title="Đổi nền trò chuyện" aria-label="Đổi nền trò chuyện">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.6"/><path d="m21 15-5-5L5 21"/></svg>
+          </button>
+          <button type="button" id="btnPinChat" class="btn btn-icon" data-i18n-title="chat.pinChat" data-i18n-aria="chat.pinChat" title="Ghim cuộc trò chuyện" aria-label="Ghim cuộc trò chuyện" aria-pressed="false">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6l-1 6 4 3v2H6v-2l4-3-1-6z"/><path d="M12 14v7"/></svg>
           </button>
-          <button type="button" id="btnBlockChat" class="btn btn-icon" title="Chặn" aria-label="Chặn" aria-pressed="false">
+          <button type="button" id="btnBlockChat" class="btn btn-icon" data-i18n-title="chat.block" data-i18n-aria="chat.block" title="Chặn" aria-label="Chặn" aria-pressed="false">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M6.2 17.8 17.8 6.2"/></svg>
           </button>
         </div>
@@ -247,13 +251,13 @@
 
       <div id="chatEmpty" class="chat-empty">
         <div class="chat-empty-icon">💬</div>
-        <p>Chọn một người trong danh sách kết nối để bắt đầu trò chuyện</p>
+        <p data-i18n="chat.empty">Chọn một người trong danh sách kết nối để bắt đầu trò chuyện</p>
       </div>
 
       <div id="messages" class="messages"></div>
       <div id="typing" class="typing" aria-live="polite"></div>
 
-      <button id="scrollBottom" class="scroll-bottom hidden" type="button" title="Xuống tin nhắn mới" aria-label="Xuống tin nhắn mới">
+      <button id="scrollBottom" class="scroll-bottom hidden" type="button" data-i18n-title="chat.scrollBottom" data-i18n-aria="chat.scrollBottom" title="Xuống tin nhắn mới" aria-label="Xuống tin nhắn mới">
         <span class="scroll-bottom-arrow" aria-hidden="true">↓</span>
         <span id="scrollBottomBadge" class="scroll-bottom-badge hidden">0</span>
       </button>
@@ -263,10 +267,10 @@
           <div id="voiceBar" class="voice-bar hidden" aria-live="polite">
             <span id="voiceDot" class="voice-dot" aria-hidden="true"></span>
             <span id="voiceTime" class="voice-elapsed">0:00</span>
-            <span id="voiceHint" class="voice-hint">Đang ghi âm…</span>
-            <button type="button" id="btnVoiceCancel" class="voice-btn voice-cancel">Huỷ</button>
-            <button type="button" id="btnVoiceStop" class="voice-btn voice-stop">Dừng</button>
-            <button type="button" id="btnVoiceSend" class="voice-btn voice-send hidden">Gửi</button>
+            <span id="voiceHint" class="voice-hint" data-i18n="chat.voiceHintRecording">Đang ghi âm…</span>
+            <button type="button" id="btnVoiceCancel" class="voice-btn voice-cancel" data-i18n="chat.cancel">Huỷ</button>
+            <button type="button" id="btnVoiceStop" class="voice-btn voice-stop" data-i18n="chat.stop">Dừng</button>
+            <button type="button" id="btnVoiceSend" class="voice-btn voice-send hidden" data-i18n="chat.send">Gửi</button>
           </div>
 
           <div id="attachmentBar" class="attachment-bar hidden" aria-live="polite">
@@ -288,15 +292,18 @@
 
           <div class="composer-row">
             <input id="imgInput" class="input-img" type="file" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar,.7z" />
-            <button id="btnAttach" class="btn btn-icon" title="Đính kèm ảnh hoặc tệp" aria-label="Đính kèm ảnh hoặc tệp" type="button">
+            <button id="btnAttach" class="btn btn-icon" data-i18n-title="chat.attach" data-i18n-aria="chat.attach" title="Đính kèm ảnh hoặc tệp" aria-label="Đính kèm ảnh hoặc tệp" type="button">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5 12.6 19.9a5 5 0 0 1-7.1-7.1l8.7-8.7a3.4 3.4 0 0 1 4.8 4.8l-8.6 8.6a1.8 1.8 0 0 1-2.6-2.6l7.9-7.9"/></svg>
             </button>
-            <button id="btnVoice" class="btn btn-icon btn-voice" title="Ghi âm giọng nói" aria-label="Ghi âm giọng nói" type="button">
+            <button id="btnDocuments" class="btn btn-icon" data-i18n-title="chat.documents" data-i18n-aria="chat.documents" title="Tệp của tôi" aria-label="Tệp của tôi" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h6"/></svg>
+            </button>
+            <button id="btnVoice" class="btn btn-icon btn-voice" data-i18n-title="chat.mic" data-i18n-aria="chat.mic" title="Ghi âm giọng nói" aria-label="Ghi âm giọng nói" type="button">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>
             </button>
-            <textarea id="msgInput" class="msg-input" rows="1" placeholder="Nhập tin nhắn..."
-                      autocomplete="off" enterkeyhint="send" aria-label="Nội dung tin nhắn"></textarea>
-            <button id="btnSend" class="btn-send" type="button" title="Gửi" aria-label="Gửi" disabled>
+            <textarea id="msgInput" class="msg-input" rows="1" data-i18n-ph="chat.inputPlaceholder" placeholder="Nhập tin nhắn..."
+                      autocomplete="off" enterkeyhint="send" data-i18n-aria="chat.message" aria-label="Nội dung tin nhắn"></textarea>
+            <button id="btnSend" class="btn-send" type="button" data-i18n-title="chat.send" data-i18n-aria="chat.send" title="Gửi" aria-label="Gửi" disabled>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12 20 4.5 14.5 20l-3-6-7-2z"/></svg>
             </button>
           </div>
@@ -306,8 +313,8 @@
       <div id="dropOverlay" class="drop-overlay" aria-hidden="true">
         <div class="drop-overlay-card">
           <div class="drop-overlay-icon">📥</div>
-          <strong>Thả tệp để đính kèm</strong>
-          <span>Ảnh, video, tài liệu · ảnh lớn</span>
+          <strong data-i18n="chat.dropTitle">Thả tệp để đính kèm</strong>
+          <span data-i18n="chat.dropDesc">Ảnh, video, tài liệu · ảnh lớn</span>
         </div>
       </div>
 
@@ -317,11 +324,11 @@
       <!-- Context menu (right-click) -->
       <div id="contextMenu" class="context-menu hidden" role="menu">
         <ul>
-          <li data-action="block"><span>🚫</span> Chặn</li>
-          <li data-action="unblock"><span>🔓</span> Bỏ chắn</li>
-          <li data-action="delete"><span>🗑️</span> Xóa kết nối</li>
-          <li data-action="pin"><span>📌</span> Ghim</li>
-          <li data-action="unpin"><span>📌</span> Bỏ ghim</li>
+          <li data-action="block"><span>🚫</span> <span data-i18n="ctx.block">Chặn</span></li>
+          <li data-action="unblock"><span>🔓</span> <span data-i18n="ctx.unblock">Bỏ chắn</span></li>
+          <li data-action="delete"><span>🗑️</span> <span data-i18n="ctx.delete">Xóa kết nối</span></li>
+          <li data-action="pin"><span>📌</span> <span data-i18n="ctx.pin">Ghim</span></li>
+          <li data-action="unpin"><span>📌</span> <span data-i18n="ctx.unpin">Bỏ ghim</span></li>
         </ul>
       </div>
     </main>
@@ -331,7 +338,7 @@
   <div id="imageViewer" class="image-viewer hidden" role="dialog" aria-modal="true" aria-label="Xem ảnh">
     <div class="image-viewer-backdrop" data-close-viewer></div>
     <img id="imageViewerImg" class="image-viewer-img" alt="" />
-    <button type="button" id="imageViewerClose" class="image-viewer-close btn btn-icon" title="Đóng" aria-label="Đóng">✕</button>
+    <button type="button" id="imageViewerClose" class="image-viewer-close btn btn-icon" data-i18n-title="viewer.close" data-i18n-aria="viewer.close" title="Đóng" aria-label="Đóng">✕</button>
   </div>
 
   <!-- ===================== MODAL HỒ SƠ ===================== -->
@@ -339,8 +346,8 @@
     <div class="modal-backdrop" data-close="profile"></div>
     <div class="modal-card">
       <header class="modal-head">
-        <h2 id="profileModalTitle">Hồ sơ của bạn</h2>
-        <button type="button" id="btnProfileClose" class="btn btn-icon" title="Đóng" aria-label="Đóng">✕</button>
+        <h2 id="profileModalTitle" data-i18n="profile.title">Hồ sơ của bạn</h2>
+        <button type="button" id="btnProfileClose" class="btn btn-icon" data-i18n-title="viewer.close" data-i18n-aria="viewer.close" title="Đóng" aria-label="Đóng">✕</button>
       </header>
 
       <div class="modal-body">
@@ -349,14 +356,14 @@
         </div>
 
         <label class="field">
-          <span>Tên hiển thị</span>
-          <input id="profileDisplayName" type="text" maxlength="40" placeholder="Nguyễn Văn A" name="displayName" autocomplete="name" />
+          <span data-i18n="profile.displayName">Tên hiển thị</span>
+          <input id="profileDisplayName" type="text" maxlength="40" data-i18n-ph="auth.phName" placeholder="Nguyễn Văn A" name="displayName" autocomplete="name" />
         </label>
 
         <label class="field">
-          <span>Username</span>
+          <span data-i18n="profile.username">Username</span>
           <input id="profileUsername" type="text" placeholder="@nguyenvana" autocomplete="off" spellcheck="false" name="username" />
-          <small class="field-hint">3–20 ký tự: chữ, số, dấu _. Không dấu cách.</small>
+          <small class="field-hint" data-i18n="profile.hint">3–20 ký tự: chữ, số, dấu _. Không dấu cách.</small>
         </label>
 
         <div id="usernameCooldownInfo" class="field-hint hidden"></div>
@@ -365,8 +372,8 @@
       </div>
 
       <footer class="modal-foot">
-        <button type="button" id="btnProfileCancel" class="btn">Hủy</button>
-        <button type="button" id="btnProfileSave" class="btn btn-primary hidden">Lưu thay đổi</button>
+        <button type="button" id="btnProfileCancel" class="btn" data-i18n="profile.cancel">Hủy</button>
+        <button type="button" id="btnProfileSave" class="btn btn-primary hidden" data-i18n="profile.save">Lưu thay đổi</button>
       </footer>
     </div>
   </div>
@@ -376,20 +383,20 @@
     <div class="modal-backdrop" data-close="notifications"></div>
     <div class="modal-card notif-card">
       <header class="modal-head">
-        <h2 id="notificationsTitle">Thông báo</h2>
-        <button type="button" id="btnNotificationsClose" class="btn btn-icon" title="Đóng" aria-label="Đóng">✕</button>
+        <h2 id="notificationsTitle" data-i18n="notif.title">Thông báo</h2>
+        <button type="button" id="btnNotificationsClose" class="btn btn-icon" data-i18n-title="viewer.close" data-i18n-aria="viewer.close" title="Đóng" aria-label="Đóng">✕</button>
       </header>
 
       <div class="modal-body notif-body">
         <div class="notif-toolbar">
-          <button type="button" id="btnNotifReadAll" class="btn btn-sm">Đọc tất cả</button>
-          <button type="button" id="btnNotifClear" class="btn btn-sm">Xóa tất cả</button>
+          <button type="button" id="btnNotifReadAll" class="btn btn-sm" data-i18n="notif.readAll">Đọc tất cả</button>
+          <button type="button" id="btnNotifClear" class="btn btn-sm" data-i18n="notif.clearAll">Xóa tất cả</button>
         </div>
         <ul id="notifList" class="notif-list"></ul>
       </div>
 
       <footer class="modal-foot">
-        <button type="button" id="btnNotificationsDone" class="btn">Đóng</button>
+        <button type="button" id="btnNotificationsDone" class="btn" data-i18n="notif.close">Đóng</button>
       </footer>
     </div>
   </div>
@@ -399,19 +406,19 @@
     <div class="modal-backdrop" data-close="group"></div>
     <div class="modal-card">
       <header class="modal-head">
-        <h2 id="groupModalTitle">Tạo nhóm</h2>
-        <button type="button" id="btnGroupClose" class="btn btn-icon" title="Đóng" aria-label="Đóng">✕</button>
+        <h2 id="groupModalTitle" data-i18n="group.title">Tạo nhóm</h2>
+        <button type="button" id="btnGroupClose" class="btn btn-icon" data-i18n-title="viewer.close" data-i18n-aria="viewer.close" title="Đóng" aria-label="Đóng">✕</button>
       </header>
       <div class="modal-body">
         <label class="field">
-          <span>Tên nhóm</span>
-          <input id="groupName" type="text" placeholder="Nhóm của tôi" maxlength="60" />
+          <span data-i18n="group.name">Tên nhóm</span>
+          <input id="groupName" type="text" data-i18n-ph="group.phName" placeholder="Nhóm của tôi" maxlength="60" />
         </label>
         <div id="groupMembers" class="user-list"></div>
       </div>
       <footer class="modal-foot">
-        <button type="button" id="btnGroupCancel" class="btn">Hủy</button>
-        <button type="button" id="btnGroupCreate" class="btn btn-primary">Tạo</button>
+        <button type="button" id="btnGroupCancel" class="btn" data-i18n="group.cancel">Hủy</button>
+        <button type="button" id="btnGroupCreate" class="btn btn-primary" data-i18n="group.create">Tạo</button>
       </footer>
     </div>
   </div>
@@ -427,50 +434,69 @@
 
       <div class="modal-body settings-body">
         <section class="settings-group">
-          <h3>Tài khoản</h3>
+          <h3 data-i18n="set.account">Tài khoản</h3>
           <div class="setting-row">
             <div class="setting-label">
-              <strong>Email</strong>
+              <strong data-i18n="set.email">Email</strong>
               <span id="settingsEmail" class="setting-desc">—</span>
             </div>
-            <button type="button" id="btnSettingsPassword" class="btn btn-sm">Đổi mật khẩu</button>
+            <button type="button" id="btnSettingsPassword" class="btn btn-sm" data-i18n="set.changePassword">Đổi mật khẩu</button>
+          </div>
+          <div class="setting-row">
+            <div class="setting-label">
+              <strong data-i18n="set.documents">Tệp của tôi</strong>
+              <span class="setting-desc" data-i18n="set.documentsDesc">Quản lý tệp đã lưu trên tài khoản của bạn</span>
+            </div>
+            <button type="button" id="btnSettingsDocuments" class="btn btn-sm" data-i18n="doc.title">Tệp của tôi</button>
           </div>
         </section>
 
         <section class="settings-group">
-          <h3>Ngôn ngữ</h3>
+          <h3 data-i18n="set.language">Ngôn ngữ</h3>
           <div class="setting-row">
             <div class="setting-label">
-              <strong>Chọn ngôn ngữ</strong>
-              <span class="setting-desc">Hiển thị giao diện bằng tiếng Việt</span>
+              <strong data-i18n="set.chooseLanguage">Chọn ngôn ngữ</strong>
+              <span class="setting-desc" data-i18n="set.languageDesc">Ngôn ngữ hiển thị của giao diện</span>
             </div>
             <select id="settingsLanguage" class="input" style="max-width:160px;">
               <option value="vi">Tiếng Việt</option>
               <option value="en">English</option>
+              <option value="es">Español</option>
+              <option value="fr">Français</option>
+              <option value="de">Deutsch</option>
+              <option value="ja">日本語</option>
+              <option value="ko">한국어</option>
+              <option value="zh">中文</option>
+              <option value="pt">Português</option>
+              <option value="ru">Русский</option>
+              <option value="ar">العربية</option>
+              <option value="hi">हिन्दी</option>
+              <option value="id">Bahasa Indonesia</option>
+              <option value="th">ไทย</option>
             </select>
           </div>
         </section>
 
         <section class="settings-group">
-          <h3>Giao diện</h3>
+          <h3 data-i18n="set.appearance">Giao diện</h3>
           <div class="setting-row">
             <div class="setting-label">
-              <strong>Chủ đề</strong>
-              <span class="setting-desc">Màu nền của ứng dụng</span>
+              <strong data-i18n="set.theme">Chủ đề</strong>
+              <span class="setting-desc" data-i18n="set.themeDesc">Màu nền của ứng dụng</span>
             </div>
-            <div class="theme-options" role="group" aria-label="Chủ đề">
-              <button type="button" class="theme-chip" data-theme-option="dark">Tối</button>
-              <button type="button" class="theme-chip" data-theme-option="light">Sáng</button>
-              <button type="button" class="theme-chip" data-theme-option="system">Hệ thống</button>
+            <div class="theme-options" role="group" data-i18n-aria="set.theme">
+              <button type="button" class="theme-chip" data-theme-option="dark" data-i18n="set.dark">Tối</button>
+              <button type="button" class="theme-chip" data-theme-option="light" data-i18n="set.light">Sáng</button>
+              <button type="button" class="theme-chip" data-theme-option="system" data-i18n="set.system">Hệ thống</button>
             </div>
           </div>
 
           <div class="setting-row">
             <div class="setting-label">
-              <strong>Màu nhấn</strong>
-              <span class="setting-desc">Màu cho nút và liên kết</span>
+              <strong data-i18n="set.accent">Màu nhấn</strong>
+              <span class="setting-desc" data-i18n="set.accentDesc">Màu cho nút và liên kết</span>
             </div>
-            <div class="accent-swatches" role="group" aria-label="Màu nhấn">
+            <div class="accent-swatches" role="group" data-i18n-aria="set.accent">
               <button type="button" class="accent-swatch" data-accent-option="blue" title="Xanh dương" aria-label="Xanh dương"></button>
               <button type="button" class="accent-swatch" data-accent-option="purple" title="Tím" aria-label="Tím"></button>
               <button type="button" class="accent-swatch" data-accent-option="green" title="Xanh lá" aria-label="Xanh lá"></button>
@@ -481,154 +507,162 @@
 
           <div class="setting-row">
             <div class="setting-label">
-              <strong>Giao diện gọn</strong>
-              <span class="setting-desc">Giảm khoảng cách giữa các tin nhắn</span>
+              <strong data-i18n="set.wallpaper">Hình nền trò chuyện</strong>
+              <span class="setting-desc" data-i18n="set.wallpaperDesc">Thay đổi nền cho các cuộc trò chuyện (như TikTok)</span>
+            </div>
+            <button type="button" id="btnSettingsWallpaper" class="btn btn-sm" data-i18n="wall.upload">Chọn ảnh</button>
+          </div>
+
+          <div class="setting-row">
+            <div class="setting-label">
+              <strong data-i18n="set.compact">Giao diện gọn</strong>
+              <span class="setting-desc" data-i18n="set.compactDesc">Giảm khoảng cách giữa các tin nhắn</span>
             </div>
             <label class="switch">
-              <input type="checkbox" data-setting="compact" aria-label="Giao diện gọn" />
+              <input type="checkbox" data-setting="compact" data-i18n-aria="set.compact" aria-label="Giao diện gọn" />
               <span class="switch-track"></span>
             </label>
           </div>
         </section>
 
         <section class="settings-group">
-          <h3>Thông báo</h3>
+          <h3 data-i18n="set.notifications">Thông báo</h3>
           <div class="setting-row">
             <div class="setting-label">
-              <strong>Thông báo trong ứng dụng</strong>
-              <span class="setting-desc">Hiện thông báo ở chuông và danh sách</span>
+              <strong data-i18n="set.notifInApp">Thông báo trong ứng dụng</strong>
+              <span class="setting-desc" data-i18n="set.notifInAppDesc">Hiện thông báo ở chuông và danh sách</span>
             </div>
             <label class="switch">
-              <input type="checkbox" data-setting="notifInApp" aria-label="Thông báo trong ứng dụng" />
+              <input type="checkbox" data-setting="notifInApp" data-i18n-aria="set.notifInApp" aria-label="Thông báo trong ứng dụng" />
               <span class="switch-track"></span>
             </label>
           </div>
           <div class="setting-row">
             <div class="setting-label">
-              <strong>Âm thanh thông báo</strong>
-              <span class="setting-desc">Phát âm báo khi có tin nhắn mới</span>
+              <strong data-i18n="set.notifSound">Âm thanh thông báo</strong>
+              <span class="setting-desc" data-i18n="set.notifSoundDesc">Phát âm báo khi có tin nhắn mới</span>
             </div>
             <label class="switch">
-              <input type="checkbox" data-setting="notifSound" aria-label="Âm thanh thông báo" />
+              <input type="checkbox" data-setting="notifSound" data-i18n-aria="set.notifSound" aria-label="Âm thanh thông báo" />
               <span class="switch-track"></span>
             </label>
           </div>
           <div class="setting-row">
             <div class="setting-label">
-              <strong>Thông báo hệ thống</strong>
-              <span class="setting-desc">Thông báo của trình duyệt khi thu nhỏ tab</span>
+              <strong data-i18n="set.notifDesktop">Thông báo hệ thống</strong>
+              <span class="setting-desc" data-i18n="set.notifDesktopDesc">Thông báo của trình duyệt khi thu nhỏ tab</span>
             </div>
             <label class="switch">
-              <input type="checkbox" data-setting="notifDesktop" aria-label="Thông báo hệ thống" />
-              <span class="switch-track"></span>
-            </label>
-          </div>
-        </section>
-
-        <section class="settings-group">
-          <h3>Tin nhắn</h3>
-          <div class="setting-row">
-            <div class="setting-label">
-              <strong>Gửi bằng Enter</strong>
-              <span class="setting-desc">Tắt: Enter để xuống dòng, dùng nút Gửi</span>
-            </div>
-            <label class="switch">
-              <input type="checkbox" data-setting="enterToSend" aria-label="Gửi bằng Enter" />
-              <span class="switch-track"></span>
-            </label>
-          </div>
-          <div class="setting-row">
-            <div class="setting-label">
-              <strong>Xác nhận đã đọc</strong>
-              <span class="setting-desc">Gửi trạng thái "đã xem" cho người khác</span>
-            </div>
-            <label class="switch">
-              <input type="checkbox" data-setting="readReceipts" aria-label="Xác nhận đã đọc" />
-              <span class="switch-track"></span>
-            </label>
-          </div>
-          <div class="setting-row">
-            <div class="setting-label">
-              <strong>Hiển thị đang nhập</strong>
-              <span class="setting-desc">Cho người khác biết khi bạn đang gõ</span>
-            </div>
-            <label class="switch">
-              <input type="checkbox" data-setting="typingIndicator" aria-label="Hiển thị đang nhập" />
+              <input type="checkbox" data-setting="notifDesktop" data-i18n-aria="set.notifDesktop" aria-label="Thông báo hệ thống" />
               <span class="switch-track"></span>
             </label>
           </div>
         </section>
 
         <section class="settings-group">
-          <h3>Nâng cao</h3>
+          <h3 data-i18n="set.messages">Tin nhắn</h3>
           <div class="setting-row">
             <div class="setting-label">
-              <strong>Hiệu ứng động</strong>
-              <span class="setting-desc">Bật các animation và chuyển đổi giao diện</span>
+              <strong data-i18n="set.enterToSend">Gửi bằng Enter</strong>
+              <span class="setting-desc" data-i18n="set.enterToSendDesc">Tắt: Enter để xuống dòng, dùng nút Gửi</span>
             </div>
             <label class="switch">
-              <input type="checkbox" data-setting="animations" aria-label="Hiệu ứng động" />
+              <input type="checkbox" data-setting="enterToSend" data-i18n-aria="set.enterToSend" aria-label="Gửi bằng Enter" />
               <span class="switch-track"></span>
             </label>
           </div>
           <div class="setting-row">
             <div class="setting-label">
-              <strong>Âm thanh giao diện</strong>
-              <span class="setting-desc">Âm báo khi bấm nút, gửi và nhận tin</span>
+              <strong data-i18n="set.readReceipts">Xác nhận đã đọc</strong>
+              <span class="setting-desc" data-i18n="set.readReceiptsDesc">Gửi trạng thái "đã xem" cho người khác</span>
             </div>
             <label class="switch">
-              <input type="checkbox" data-setting="uiSounds" aria-label="Âm thanh giao diện" />
+              <input type="checkbox" data-setting="readReceipts" data-i18n-aria="set.readReceipts" aria-label="Xác nhận đã đọc" />
               <span class="switch-track"></span>
             </label>
           </div>
           <div class="setting-row">
             <div class="setting-label">
-              <strong>Nội dung thông báo</strong>
-              <span class="setting-desc">Hiện nội dung tin nhắn trong thông báo</span>
+              <strong data-i18n="set.typingIndicator">Hiển thị đang nhập</strong>
+              <span class="setting-desc" data-i18n="set.typingIndicatorDesc">Cho người khác biết khi bạn đang gõ</span>
             </div>
             <label class="switch">
-              <input type="checkbox" data-setting="notifPreview" aria-label="Nội dung thông báo" />
+              <input type="checkbox" data-setting="typingIndicator" data-i18n-aria="set.typingIndicator" aria-label="Hiển thị đang nhập" />
+              <span class="switch-track"></span>
+            </label>
+          </div>
+        </section>
+
+        <section class="settings-group">
+          <h3 data-i18n="set.advanced">Nâng cao</h3>
+          <div class="setting-row">
+            <div class="setting-label">
+              <strong data-i18n="set.animations">Hiệu ứng động</strong>
+              <span class="setting-desc" data-i18n="set.animationsDesc">Bật các animation và chuyển đổi giao diện</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" data-setting="animations" data-i18n-aria="set.animations" aria-label="Hiệu ứng động" />
               <span class="switch-track"></span>
             </label>
           </div>
           <div class="setting-row">
             <div class="setting-label">
-              <strong>Chất lượng ghi âm</strong>
-              <span class="setting-desc">Cao hơn cho âm thanh rõ, tốn dung lượng hơn</span>
+              <strong data-i18n="set.uiSounds">Âm thanh giao diện</strong>
+              <span class="setting-desc" data-i18n="set.uiSoundsDesc">Âm báo khi bấm nút, gửi và nhận tin</span>
             </div>
-            <select class="input setting-select" data-setting="voiceQuality" aria-label="Chất lượng ghi âm">
-              <option value="low">Thấp</option>
-              <option value="normal">Bình thường</option>
-              <option value="high">Cao</option>
+            <label class="switch">
+              <input type="checkbox" data-setting="uiSounds" data-i18n-aria="set.uiSounds" aria-label="Âm thanh giao diện" />
+              <span class="switch-track"></span>
+            </label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-label">
+              <strong data-i18n="set.notifPreview">Nội dung thông báo</strong>
+              <span class="setting-desc" data-i18n="set.notifPreviewDesc">Hiện nội dung tin nhắn trong thông báo</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" data-setting="notifPreview" data-i18n-aria="set.notifPreview" aria-label="Nội dung thông báo" />
+              <span class="switch-track"></span>
+            </label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-label">
+              <strong data-i18n="set.voiceQuality">Chất lượng ghi âm</strong>
+              <span class="setting-desc" data-i18n="set.voiceQualityDesc">Cao hơn cho âm thanh rõ, tốn dung lượng hơn</span>
+            </div>
+            <select class="input setting-select" data-setting="voiceQuality" data-i18n-aria="set.voiceQuality" aria-label="Chất lượng ghi âm">
+              <option value="low" data-i18n="set.voiceLow">Thấp</option>
+              <option value="normal" data-i18n="set.voiceNormal">Bình thường</option>
+              <option value="high" data-i18n="set.voiceHigh">Cao</option>
             </select>
           </div>
           <div class="setting-row">
             <div class="setting-label">
-              <strong>Thời lượng ghi âm tối đa</strong>
-              <span class="setting-desc">Tự dừng khi đạt giới hạn</span>
+              <strong data-i18n="set.voiceMax">Thời lượng ghi âm tối đa</strong>
+              <span class="setting-desc" data-i18n="set.voiceMaxDesc">Tự dừng khi đạt giới hạn</span>
             </div>
-            <select class="input setting-select" data-setting="voiceMaxDuration" aria-label="Thời lượng ghi âm tối đa">
-              <option value="60">60 giây</option>
-              <option value="120">120 giây</option>
-              <option value="300">300 giây</option>
+            <select class="input setting-select" data-setting="voiceMaxDuration" data-i18n-aria="set.voiceMax" aria-label="Thời lượng ghi âm tối đa">
+              <option value="60" data-i18n="set.voice60">60 giây</option>
+              <option value="120" data-i18n="set.voice120">120 giây</option>
+              <option value="300" data-i18n="set.voice300">300 giây</option>
             </select>
           </div>
           <div class="setting-row">
             <div class="setting-label">
-              <strong>Tự gửi sau khi ghi</strong>
-              <span class="setting-desc">Gửi ngay khi bạn nhấn Dừng</span>
+              <strong data-i18n="set.voiceAutoSend">Tự gửi sau khi ghi</strong>
+              <span class="setting-desc" data-i18n="set.voiceAutoSendDesc">Gửi ngay khi bạn nhấn Dừng</span>
             </div>
             <label class="switch">
-              <input type="checkbox" data-setting="voiceAutoSend" aria-label="Tự gửi sau khi ghi" />
+              <input type="checkbox" data-setting="voiceAutoSend" data-i18n-aria="set.voiceAutoSend" aria-label="Tự gửi sau khi ghi" />
               <span class="switch-track"></span>
             </label>
           </div>
           <div class="setting-row">
             <div class="setting-label">
-              <strong>Cỡ chữ</strong>
-              <span class="setting-desc">Phóng to hoặc thu nhỏ toàn bộ giao diện</span>
+              <strong data-i18n="set.fontScale">Cỡ chữ</strong>
+              <span class="setting-desc" data-i18n="set.fontScaleDesc">Phóng to hoặc thu nhỏ toàn bộ giao diện</span>
             </div>
-            <select class="input setting-select" data-setting="fontScale" aria-label="Cỡ chữ">
+            <select class="input setting-select" data-setting="fontScale" data-i18n-aria="set.fontScale" aria-label="Cỡ chữ">
               <option value="0.9">90%</option>
               <option value="1">100%</option>
               <option value="1.1">110%</option>
@@ -639,8 +673,66 @@
       </div>
 
       <footer class="modal-foot settings-foot">
-        <button type="button" id="btnSettingsReset" class="btn btn-link">Đặt lại mặc định</button>
-        <button type="button" id="btnSettingsDone" class="btn btn-primary">Xong</button>
+        <button type="button" id="btnSettingsReset" class="btn btn-link" data-i18n="set.reset">Đặt lại mặc định</button>
+        <button type="button" id="btnSettingsDone" class="btn btn-primary" data-i18n="set.done">Xong</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- ===================== MODAL HÌNH NỀN TRÒ CHUYỆN ===================== -->
+  <div id="wallpaperModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="wallpaperModalTitle">
+    <div class="modal-backdrop" data-close="wallpaper"></div>
+    <div class="modal-card wallpaper-card">
+      <header class="modal-head">
+        <h2 id="wallpaperModalTitle" data-i18n="wall.title">Hình nền trò chuyện</h2>
+        <button type="button" id="btnWallpaperClose" class="btn btn-icon" data-i18n-title="viewer.close" data-i18n-aria="viewer.close" title="Đóng" aria-label="Đóng">✕</button>
+      </header>
+      <div class="modal-body wallpaper-body">
+        <p class="wallpaper-desc" data-i18n="wall.desc">Chọn nền cho cuộc trò chuyện. Bạn có thể chọn mẫu có sẵn hoặc tải ảnh của riêng bạn lên.</p>
+        <p id="wallpaperHint" class="wallpaper-hint" data-i18n="wall.forAll">Áp dụng cho tất cả trò chuyện</p>
+        <div id="wallpaperGrid" class="wallpaper-grid"></div>
+        <div id="wallpaperCustomCard" class="wallpaper-custom">
+          <div class="wallpaper-custom-icon">🖼️</div>
+          <div class="wallpaper-custom-info">
+            <strong data-i18n="wall.custom">Ảnh tùy chỉnh</strong>
+            <span data-i18n="wall.customDesc">Tải ảnh từ thiết bị của bạn</span>
+          </div>
+          <button type="button" id="btnWallpaperUpload" class="btn btn-sm" data-i18n="wall.upload">Chọn ảnh</button>
+          <input id="wallpaperFileInput" class="input-img" type="file" accept="image/*" />
+        </div>
+      </div>
+      <footer class="modal-foot wallpaper-foot">
+        <button type="button" id="btnWallpaperReset" class="btn btn-link" data-i18n="wall.reset">Dùng mặc định</button>
+        <span class="wallpaper-foot-right">
+          <button type="button" id="btnWallpaperApplyAll" class="btn hidden" data-i18n="wall.forAll">Áp dụng cho tất cả trò chuyện</button>
+          <button type="button" id="btnWallpaperDone" class="btn btn-primary" data-i18n="set.done">Xong</button>
+        </span>
+      </footer>
+    </div>
+  </div>
+
+  <!-- ===================== MODAL TỆP CỦA TÔI ===================== -->
+  <div id="documentsModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="documentsModalTitle">
+    <div class="modal-backdrop" data-close="documents"></div>
+    <div class="modal-card documents-card">
+      <header class="modal-head">
+        <h2 id="documentsModalTitle" data-i18n="doc.title">Tệp của tôi</h2>
+        <button type="button" id="btnDocClose" class="btn btn-icon" data-i18n-title="viewer.close" data-i18n-aria="viewer.close" title="Đóng" aria-label="Đóng">✕</button>
+      </header>
+      <div class="modal-body documents-body">
+        <p class="documents-desc" data-i18n="doc.desc">Các tệp đã lưu trên tài khoản. Chọn một tệp để gửi trong cuộc trò chuyện hiện tại.</p>
+        <div class="documents-toolbar">
+          <button type="button" id="btnDocUpload" class="btn btn-sm btn-primary" data-i18n="doc.upload">Tải tệp lên</button>
+          <input id="docFileInput" class="input-img" type="file" multiple />
+          <input id="docSearch" class="input" type="search" data-i18n-ph="doc.search" placeholder="Tìm tệp..." />
+        </div>
+        <div id="docUploadProgress" class="doc-upload-progress hidden" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <div id="docUploadProgressFill" class="doc-upload-progress-fill"></div>
+        </div>
+        <ul id="docList" class="doc-list"></ul>
+      </div>
+      <footer class="modal-foot">
+        <button type="button" id="btnDocDone" class="btn btn-primary" data-i18n="doc.close">Đóng</button>
       </footer>
     </div>
   </div>
@@ -654,12 +746,24 @@
     import { previewImage, clearImagePreview } from "./js/images.js";
     import { formatFileSize, MAX_FILE_SIZE } from "./js/storage.js";
     import { VoiceRecorder, bitrateFor, formatDuration as formatVoiceTime, isRecordingSupported } from "./js/voice.js";
-    import { initSettings, getSettings } from "./js/settings.js";
+    import { initSettings, getSettings, updateSetting } from "./js/settings.js";
     import { initNotifications } from "./js/notifications.js";
+    import { initI18n, t, setLanguage, getCurrentLanguage } from "./js/i18n.js";
+    import { initWallpaper } from "./js/wallpaper.js";
+    import { initDocuments } from "./js/documents.js";
     import { onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
 
+    window.i18n = {
+      t,
+      getCurrentLanguage,
+      setLanguage: (code) => { setLanguage(code); updateSetting("language", code); }
+    };
+
+    initI18n();
     initSettings();
     initNotifications();
+    initWallpaper();
+    initDocuments();
 
     // ---------- Nền sao động màn đăng nhập ----------
     const starsBox = document.getElementById("stars");
@@ -762,7 +866,7 @@
       setStatus($("status"), "");
 
       if (!email || !password) {
-        setStatus($("status"), "Vui lòng nhập email và mật khẩu.", "error");
+        setStatus($("status"), t("status.loginMissing", "Vui lòng nhập email và mật khẩu."), "error");
         return;
       }
 
@@ -772,7 +876,7 @@
       btn.classList.add("is-loading");
       try {
         await login(email, password);
-        setStatus($("status"), "Đăng nhập thành công", "success");
+        setStatus($("status"), t("status.loginOk", "Đăng nhập thành công"), "success");
       } catch (err) {
         setStatus($("status"), friendlyError(err, "login"), "error");
       } finally {
@@ -794,10 +898,10 @@
 
       const usernameErr = validateUsername(usernameRaw);
       if (usernameErr) { setStatus($("registerStatus"), usernameErr, "error"); $("username")?.focus(); return; }
-      if (!displayName) { setStatus($("registerStatus"), "Vui lòng nhập tên hiển thị.", "error"); $("displayName")?.focus(); return; }
-      if (!email) { setStatus($("registerStatus"), "Vui lòng nhập địa chỉ email.", "error"); $("regEmail")?.focus(); return; }
+      if (!displayName) { setStatus($("registerStatus"), t("status.regNameMissing", "Vui lòng nhập tên hiển thị."), "error"); $("displayName")?.focus(); return; }
+      if (!email) { setStatus($("registerStatus"), t("status.regEmailMissing", "Vui lòng nhập địa chỉ email."), "error"); $("regEmail")?.focus(); return; }
       if (!password || password.length < 6) {
-        setStatus($("registerStatus"), "Mật khẩu phải có ít nhất 6 ký tự.", "error");
+        setStatus($("registerStatus"), t("status.regPassShort", "Mật khẩu phải có ít nhất 6 ký tự."), "error");
         $("regPassword")?.focus();
         return;
       }
@@ -810,9 +914,9 @@
         const user = await register(email, password, displayName);
         try {
           await createUserProfile(user, { displayName, username: normalizeUsername(usernameRaw) });
-          setStatus($("registerStatus"), "Đăng ký thành công", "success");
+          setStatus($("registerStatus"), t("status.regOk", "Đăng ký thành công"), "success");
         } catch (pe) {
-          setStatus($("registerStatus"), "Đã tạo tài khoản nhưng chưa lưu được hồ sơ: " + pe.message, "error");
+          setStatus($("registerStatus"), t("status.regProfileFail", "Đã tạo tài khoản nhưng chưa lưu được hồ sơ: ") + pe.message, "error");
         }
       } catch (err) {
         setStatus($("registerStatus"), friendlyError(err, "register"), "error");
@@ -855,7 +959,7 @@
       setStatus(resetStatus, "");
 
       if (!email || !isValidEmail(email)) {
-        setStatus(resetStatus, "Vui lòng nhập địa chỉ email hợp lệ.", "error");
+        setStatus(resetStatus, t("status.resetInvalid", "Vui lòng nhập địa chỉ email hợp lệ."), "error");
         return;
       }
 
@@ -865,7 +969,7 @@
       try {
         await resetPassword(email);
         setStatus(resetStatus,
-          "Nếu email tồn tại, chúng tôi đã gửi liên kết đặt lại mật khẩu. Vui lòng kiểm tra hộp thư đến và cả thư mục Spam.",
+          t("status.resetOk", "Nếu email tồn tại, chúng tôi đã gửi liên kết đặt lại mật khẩu. Vui lòng kiểm tra hộp thư đến và cả thư mục Spam."),
           "success");
       } catch (err) {
         setStatus(resetStatus, friendlyError(err, "reset"), "error");
@@ -877,7 +981,7 @@
     });
 
     $("btnLogout")?.addEventListener("click", async () => {
-      try { await logout(); status("Đã đăng xuất"); }
+      try { await logout(); status(t("status.logout", "Đã đăng xuất")); }
       catch (e) { setStatus($("status"), friendlyError(e, "login"), "error"); }
     });
 
@@ -893,12 +997,12 @@
         try {
           const profile = await getUserProfile(u.uid);
           myProfile = profile;
-          $("myName").textContent = profile?.displayName || u.displayName || "Bạn";
+          $("myName").textContent = profile?.displayName || u.displayName || t("status.you", "Bạn");
           $("myUid").textContent = profile?.username ? "@" + profile.username : u.uid.slice(0, 8) + "…";
           $("myAvatar").textContent = (profile?.displayName || u.email || "?").charAt(0).toUpperCase();
         } catch (err) {
           myProfile = null;
-          $("myName").textContent = u.displayName || "Bạn";
+          $("myName").textContent = u.displayName || t("status.you", "Bạn");
           $("myUid").textContent = u.uid.slice(0, 8) + "…";
           $("myAvatar").textContent = (u.email || "?").charAt(0).toUpperCase();
         }
@@ -966,7 +1070,7 @@
       const diffDays = (new Date() - lastChange) / (1000 * 60 * 60 * 24);
       const remaining = Math.max(0, 10 - Math.ceil(diffDays));
       if (remaining > 0) {
-        info.textContent = `Còn ${remaining} ngày mới có thể đổi username lần nữa.`;
+        info.textContent = t("status.cooldown", { days: remaining });
         info.classList.remove("hidden");
       } else {
         info.classList.add("hidden");
@@ -1314,24 +1418,26 @@
       updateSendState();
     }
     window.app.clearAttachment = () => clearFileSelection();
+    // Dùng bởi "Tệp của tôi": đưa tệp đã lưu vào khung soạn tin nhắn.
+    window.app.setDocumentAsAttachment = (file) => setSelectedFile(file);
 
     function setSelectedFile(f) {
       if (voiceFile || voiceRecorder.isRecording) discardVoice();
       if (!f) { clearFileSelection(); return; }
       if (!window.app.currentChatId()) {
-        notify("Hãy chọn một cuộc trò chuyện trước khi đính kèm.");
+        notify(t("toast.selectChat", "Hãy chọn một cuộc trò chuyện trước khi đính kèm."));
         $("imgInput").value = "";
         return;
       }
       const isImage = (f.type || "").startsWith("image/");
       const selectLimit = isImage ? 25 * 1024 * 1024 : MAX_FILE_SIZE;
       if (!f.size) {
-        notify("Tệp rỗng hoặc không đọc được.");
+        notify(t("toast.emptyFile", "Tệp rỗng hoặc không đọc được."));
         clearFileSelection();
         return;
       }
       if (f.size > selectLimit) {
-        notify(`Tệp quá lớn. Tối đa ${formatFileSize(selectLimit)}.`);
+        notify(`${t("toast.fileTooLarge", "Tệp quá lớn. Tối đa")} ${formatFileSize(selectLimit)}.`);
         clearFileSelection();
         return;
       }
@@ -1346,7 +1452,7 @@
       bar.classList.add("pop");
 
       $("attachmentName").textContent = f.name || "Tệp đính kèm";
-      $("attachmentSize").textContent = `${isImage ? "Ảnh" : "Tệp"} · ${formatFileSize(f.size)}`;
+      $("attachmentSize").textContent = `${isImage ? t("status.image", "Ảnh") : t("status.file", "Tệp")} · ${formatFileSize(f.size)}`;
 
       if (isImage) {
         $("filePreview").classList.add("hidden");
@@ -1501,7 +1607,9 @@
       const recording = mode === "recording";
       bar.classList.remove("hidden");
       $("voiceDot")?.classList.toggle("recording", recording);
-      $("voiceHint").textContent = recording ? "Đang ghi âm…" : "Đã ghi xong · Nhấn Gửi";
+      $("voiceHint").textContent = recording
+        ? t("chat.voiceHintRecording", "Đang ghi âm…")
+        : t("chat.voiceHintReady", "Đã ghi xong · Nhấn Gửi");
       $("btnVoiceCancel")?.classList.toggle("hidden", !recording);
       $("btnVoiceStop")?.classList.toggle("hidden", !recording);
       $("btnVoiceSend")?.classList.toggle("hidden", recording);
