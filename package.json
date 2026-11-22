@@ -1,0 +1,14 @@
+{
+  "name": "starment-chat-desktop",
+  "private": true,
+  "version": "1.0.0",
+  "description": "StarmentChat desktop app built with Tauri",
+  "scripts": {
+    "tauri": "tauri",
+    "build": "tauri build",
+    "dev": "tauri dev"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.9.0"
+  }
+}
